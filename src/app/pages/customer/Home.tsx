@@ -184,7 +184,7 @@ export const Home = () => {
           </Button>
         </Box>
 
-        <Grid container spacing={2} sx={{ mb: 8 }}>
+        <Grid container spacing={2} sx={{ mb: 7 }}>
           {destinations.slice(0, 4).map((destination) => (
             <Grid item xs={6} md={3} key={destination.id}>
               <Card 
@@ -194,13 +194,13 @@ export const Home = () => {
                   overflow: 'hidden',
                   cursor: 'pointer',
                   transition: 'transform 0.2s',
-                  '&:hover': { transform: 'scale(1.02)' },
+                  '&:hover': { transform: 'scale(1.015)' },
                 }}
                 onClick={() => navigate(`/search?destination=${destination.id}`)}
               >
                 <CardMedia
                   component="img"
-                  height="200"
+                  height="160"
                   image={destination.image_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'}
                   alt={destination.name}
                   sx={{ filter: 'brightness(0.8)' }}
@@ -211,12 +211,12 @@ export const Home = () => {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    p: 2,
+                    p: 1.5,
                     background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
                     color: 'white',
                   }}
                 >
-                  <Typography variant="h6" fontWeight={700}>
+                  <Typography variant="subtitle1" fontWeight={700}>
                     {destination.name}
                   </Typography>
                   <Typography variant="caption" sx={{ opacity: 0.9 }}>
@@ -245,7 +245,7 @@ export const Home = () => {
           </Button>
         </Box>
 
-        <Grid container spacing={3} sx={{ mb: 8 }}>
+        <Grid container spacing={2.5} sx={{ mb: 7 }}>
           {featuredHotels.slice(0, 6).map((hotel) => {
             const lowestPrice = getLowestPrice(hotel);
             return (
@@ -266,7 +266,7 @@ export const Home = () => {
                   <Box sx={{ position: 'relative' }}>
                     <CardMedia
                       component="img"
-                      height="200"
+                      height="168"
                       image={hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'}
                       alt={hotel.name}
                     />
@@ -285,9 +285,9 @@ export const Home = () => {
                       />
                     )}
                   </Box>
-                  <CardContent sx={{ flexGrow: 1 }}>
+                  <CardContent sx={{ flexGrow: 1, p: 1.75 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-                      <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                      <Typography variant="subtitle1" fontWeight={600} sx={{ lineHeight: 1.3 }}>
                         {hotel.name}
                       </Typography>
                       <Chip
@@ -307,7 +307,7 @@ export const Home = () => {
                       ))}
                     </Box>
                     {lowestPrice && (
-                      <Typography variant="h5" color="primary.main" fontWeight={700}>
+                      <Typography variant="h6" color="primary.main" fontWeight={700}>
                         {formatPrice(lowestPrice)}
                         <Typography component="span" variant="body2" color="text.secondary" fontWeight={400}>
                           /night
@@ -315,7 +315,7 @@ export const Home = () => {
                       </Typography>
                     )}
                   </CardContent>
-                  <CardActions sx={{ p: 2, pt: 0 }}>
+                  <CardActions sx={{ p: 1.75, pt: 0 }}>
                     <Button
                       fullWidth
                       variant="contained"

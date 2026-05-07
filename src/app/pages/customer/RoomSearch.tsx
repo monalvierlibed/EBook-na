@@ -283,7 +283,7 @@ export const RoomSearch = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={2.5}>
               {hotels.map((hotel) => {
                 const lowestPrice = getLowestPrice(hotel);
                 const hasAvailableRooms = hotel.rooms?.some(r => r.available) ?? false;
@@ -311,7 +311,7 @@ export const RoomSearch = () => {
                       <Box sx={{ position: 'relative' }}>
                         <CardMedia
                           component="img"
-                          height="180"
+                          height="156"
                           image={hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'}
                           alt={hotel.name}
                         />
@@ -347,9 +347,9 @@ export const RoomSearch = () => {
                         )}
                       </Box>
 
-                      <CardContent sx={{ flexGrow: 1 }}>
+                      <CardContent sx={{ flexGrow: 1, p: 1.75 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-                          <Typography variant="h6" fontWeight={600} sx={{ flex: 1, lineHeight: 1.3 }}>
+                          <Typography variant="subtitle1" fontWeight={600} sx={{ flex: 1, lineHeight: 1.3 }}>
                             {hotel.name}
                           </Typography>
                           <Chip
@@ -374,7 +374,7 @@ export const RoomSearch = () => {
                         {lowestPrice && (
                           <>
                             <Divider sx={{ mb: 1.5 }} />
-                            <Typography variant="h5" color="primary.main" fontWeight={700}>
+                            <Typography variant="h6" color="primary.main" fontWeight={700}>
                               {formatPrice(lowestPrice)}
                               <Typography component="span" variant="body2" color="text.secondary" fontWeight={400}>
                                 /night
@@ -384,7 +384,7 @@ export const RoomSearch = () => {
                         )}
                       </CardContent>
 
-                      <CardActions sx={{ p: 2, pt: 0 }}>
+                      <CardActions sx={{ p: 1.75, pt: 0 }}>
                         <Button
                           fullWidth
                           variant="contained"
