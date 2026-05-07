@@ -121,23 +121,23 @@ export const RoomSearch = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" fontWeight={700} gutterBottom>
-        Explore Philippine Hotels
+        All Hotels
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Find the perfect accommodation across the beautiful islands of the Philippines
+        Compare rooms, prices, ratings, and amenities.
       </Typography>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={3}>
           <Paper
             sx={{
-              p: 3,
+              p: 2.5,
               position: 'sticky',
               top: 80,
               borderRadius: 3,
               border: '1px solid',
-              borderColor: 'divider',
-              boxShadow: '0 12px 28px rgba(15, 23, 42, 0.06)',
+              borderColor: '#E5E7EB',
+              boxShadow: '0 8px 18px rgba(17, 24, 39, 0.06)',
             }}
           >
             <Typography variant="h6" fontWeight={600} gutterBottom>
@@ -295,15 +295,15 @@ export const RoomSearch = () => {
                         height: '100%', 
                         display: 'flex', 
                         flexDirection: 'column', 
-                        borderRadius: 3,
+                        borderRadius: 2,
                         border: '1px solid',
-                        borderColor: 'divider',
+                        borderColor: '#E5E7EB',
                         cursor: 'pointer',
-                        boxShadow: '0 10px 24px rgba(15, 23, 42, 0.07)',
+                        boxShadow: '0 4px 14px rgba(17, 24, 39, 0.06)',
                         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                         '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: '0 16px 32px rgba(15, 23, 42, 0.15)',
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 10px 20px rgba(17, 24, 39, 0.12)',
                         },
                       }}
                       onClick={() => navigate(`/hotel/${hotel.id}`)}
