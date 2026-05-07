@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import {
   Container,
@@ -19,31 +19,92 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
 } from '@mui/material';
 import { CheckCircle, CalendarMonth, Person } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { supabase, RoomWithHotel } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
 export const Booking = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const { rooms, user, addBooking } = useApp();
+  const { createBooking } = useApp();
+  const { user, profile } = useAuth();
 
-  const room = rooms.find((r) => r.id === roomId);
+  const [room, setRoom] = useState<RoomWithHotel | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     checkIn: '',
     checkOut: '',
     guests: 1,
     specialRequests: '',
-    firstName: user?.name.split(' ')[0] || '',
-    lastName: user?.name.split(' ')[1] || '',
-    email: user?.email || '',
+    firstName: '',
+    lastName: '',
+    email: '',
     phone: '',
   });
 
+  const [submitting, setSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bookingId, setBookingId] = useState('');
+
+  useEffect(() => {
+    const fetchRoom = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('rooms')
+        .select(`
+          *,
+          hotel:hotels(*)
+        `)
+        .eq('id', roomId)
+        .single();
+
+      if (!error && data) {
+        setRoom(data);
+      }
+      setLoading(false);
+    };
+
+    if (roomId) {
+      fetchRoom();
+    }
+  }, [roomId]);
+
+  // Pre-fill form with user data
+  useEffect(() => {
+    if (user || profile) {
+      const fullName = profile?.full_name || user?.user_metadata?.full_name || '';
+      const nameParts = fullName.split(' ');
+      
+      setFormData(prev => ({
+        ...prev,
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
+        email: user?.email || '',
+        phone: profile?.phone || '',
+      }));
+    }
+  }, [user, profile]);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   if (!room) {
     return (
@@ -67,12 +128,12 @@ export const Booking = () => {
   };
 
   const nights = calculateNights();
-  const subtotal = room.price * nights;
+  const subtotal = room.price_per_night * nights;
   const serviceFee = subtotal * 0.1;
-  const taxes = subtotal * 0.08;
+  const taxes = subtotal * 0.12; // 12% VAT in Philippines
   const total = subtotal + serviceFee + taxes;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!user) {
@@ -86,24 +147,26 @@ export const Booking = () => {
       return;
     }
 
-    const newBookingId = `BK${Date.now()}`;
-    setBookingId(newBookingId);
+    setSubmitting(true);
 
-    const booking = {
-      id: newBookingId,
-      roomId: room.id,
-      roomName: room.name,
-      hotelName: room.hotelName,
-      checkIn: formData.checkIn,
-      checkOut: formData.checkOut,
+    const { error } = await createBooking({
+      room_id: room.id,
+      check_in: formData.checkIn,
+      check_out: formData.checkOut,
       guests: formData.guests,
-      totalPrice: total,
-      status: 'pending' as const,
-      createdAt: new Date().toISOString(),
-    };
+      total_price: total,
+      status: 'pending',
+      special_requests: formData.specialRequests || null,
+    });
 
-    addBooking(booking);
-    setShowConfirmation(true);
+    if (error) {
+      toast.error(error.message);
+      setSubmitting(false);
+    } else {
+      setBookingId(`EBOK-${Date.now().toString(36).toUpperCase()}`);
+      setShowConfirmation(true);
+      setSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -136,6 +199,7 @@ export const Booking = () => {
                     value={formData.firstName}
                     onChange={handleChange}
                     required
+                    disabled={submitting}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -146,6 +210,7 @@ export const Booking = () => {
                     value={formData.lastName}
                     onChange={handleChange}
                     required
+                    disabled={submitting}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -157,6 +222,7 @@ export const Booking = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    disabled={submitting}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -167,6 +233,8 @@ export const Booking = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     required
+                    disabled={submitting}
+                    placeholder="+63"
                   />
                 </Grid>
               </Grid>
@@ -189,6 +257,7 @@ export const Booking = () => {
                     InputLabelProps={{ shrink: true }}
                     inputProps={{ min: new Date().toISOString().split('T')[0] }}
                     required
+                    disabled={submitting}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -202,17 +271,18 @@ export const Booking = () => {
                     InputLabelProps={{ shrink: true }}
                     inputProps={{ min: formData.checkIn || new Date().toISOString().split('T')[0] }}
                     required
+                    disabled={submitting}
                   />
                 </Grid>
                 <Grid item xs={12}>
-                  <FormControl fullWidth>
+                  <FormControl fullWidth disabled={submitting}>
                     <InputLabel>Number of Guests</InputLabel>
                     <Select
                       value={formData.guests}
                       label="Number of Guests"
                       onChange={(e) => setFormData({ ...formData, guests: e.target.value as number })}
                     >
-                      {[1, 2, 3, 4, 5, 6].map((num) => (
+                      {Array.from({ length: room.capacity }, (_, i) => i + 1).map((num) => (
                         <MenuItem key={num} value={num}>
                           {num} {num === 1 ? 'Guest' : 'Guests'}
                         </MenuItem>
@@ -229,6 +299,8 @@ export const Booking = () => {
                     rows={3}
                     value={formData.specialRequests}
                     onChange={handleChange}
+                    disabled={submitting}
+                    placeholder="E.g., early check-in, extra pillows, dietary requirements..."
                   />
                 </Grid>
               </Grid>
@@ -242,13 +314,21 @@ export const Booking = () => {
               </Typography>
 
               <Card sx={{ mb: 2 }}>
-                <CardMedia component="img" height="120" image={room.image} alt={room.name} />
+                <CardMedia 
+                  component="img" 
+                  height="120" 
+                  image={room.images?.[0] || room.hotel?.images?.[0] || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800'} 
+                  alt={room.name} 
+                />
                 <CardContent>
                   <Typography variant="subtitle1" fontWeight={600}>
                     {room.name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {room.hotelName}
+                    {room.hotel?.name}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {room.hotel?.city}, {room.hotel?.province}
                   </Typography>
                 </CardContent>
               </Card>
@@ -274,17 +354,17 @@ export const Booking = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2">
-                    ${room.price} x {nights} nights
+                    {formatPrice(room.price_per_night)} x {nights} nights
                   </Typography>
-                  <Typography variant="body2">${subtotal.toFixed(2)}</Typography>
+                  <Typography variant="body2">{formatPrice(subtotal)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2">Service Fee</Typography>
-                  <Typography variant="body2">${serviceFee.toFixed(2)}</Typography>
+                  <Typography variant="body2">{formatPrice(serviceFee)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">Taxes</Typography>
-                  <Typography variant="body2">${taxes.toFixed(2)}</Typography>
+                  <Typography variant="body2">VAT (12%)</Typography>
+                  <Typography variant="body2">{formatPrice(taxes)}</Typography>
                 </Box>
                 <Box sx={{ borderTop: '1px solid #CBD5E1', pt: 1, mt: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -292,14 +372,21 @@ export const Booking = () => {
                       Total
                     </Typography>
                     <Typography variant="body1" fontWeight={700} color="primary.main">
-                      ${total.toFixed(2)}
+                      {formatPrice(total)}
                     </Typography>
                   </Box>
                 </Box>
               </Box>
 
-              <Button fullWidth variant="contained" size="large" type="submit">
-                Confirm Booking
+              <Button 
+                fullWidth 
+                variant="contained" 
+                size="large" 
+                type="submit"
+                disabled={submitting}
+                startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
+              >
+                {submitting ? 'Processing...' : 'Confirm Booking'}
               </Button>
 
               <Typography variant="caption" color="text.secondary" align="center" display="block" sx={{ mt: 2 }}>
@@ -319,11 +406,11 @@ export const Booking = () => {
             </Typography>
           </DialogTitle>
           <Typography variant="body1" color="text.secondary" paragraph>
-            Your booking has been successfully placed.
+            Salamat! Your booking has been successfully placed.
           </Typography>
           <Paper sx={{ bgcolor: '#F1F5F9', p: 2, mb: 2 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Booking ID
+              Booking Reference
             </Typography>
             <Typography variant="h6" fontWeight={600}>
               {bookingId}
@@ -335,7 +422,7 @@ export const Booking = () => {
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
           <Button variant="outlined" onClick={() => navigate('/search')}>
-            Browse More Rooms
+            Browse More Hotels
           </Button>
           <Button variant="contained" onClick={() => navigate('/bookings')}>
             View My Bookings

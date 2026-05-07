@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import {
   Container,
   Box,
@@ -16,44 +17,92 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from '@mui/material';
-import { CalendarMonth, Person, Download, Cancel as CancelIcon, CheckCircle, Pending } from '@mui/icons-material';
+import { CalendarMonth, Person, Download, Cancel as CancelIcon, CheckCircle, Pending, Schedule } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
 
 export const BookingHistory = () => {
-  const { bookings, rooms, updateBookingStatus } = useApp();
+  const navigate = useNavigate();
+  const { bookings, cancelBooking, fetchBookings, loading } = useApp();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [cancelDialog, setCancelDialog] = useState<{ open: boolean; bookingId: string }>({
     open: false,
     bookingId: '',
   });
+  const [cancelling, setCancelling] = useState(false);
 
-  const getRoom = (roomId: string) => rooms.find((r) => r.id === roomId);
+  useEffect(() => {
+    if (user) {
+      fetchBookings();
+    }
+  }, [user]);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
 
   const filteredBookings =
     activeTab === 0
-      ? bookings.filter((b) => b.status === 'pending' || b.status === 'approved')
-      : bookings.filter((b) => b.status === 'cancelled');
+      ? bookings.filter((b) => b.status === 'pending' || b.status === 'confirmed')
+      : bookings.filter((b) => b.status === 'cancelled' || b.status === 'completed');
 
-  const handleCancelBooking = () => {
-    updateBookingStatus(cancelDialog.bookingId, 'cancelled');
-    toast.success('Booking cancelled successfully');
+  const handleCancelBooking = async () => {
+    setCancelling(true);
+    const { error } = await cancelBooking(cancelDialog.bookingId);
+    
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Booking cancelled successfully');
+    }
+    
+    setCancelling(false);
     setCancelDialog({ open: false, bookingId: '' });
   };
 
   const getStatusChip = (status: string) => {
     switch (status) {
-      case 'approved':
-        return <Chip icon={<CheckCircle />} label="Approved" color="success" size="small" />;
+      case 'confirmed':
+        return <Chip icon={<CheckCircle />} label="Confirmed" color="success" size="small" />;
       case 'pending':
-        return <Chip icon={<Pending />} label="Pending" color="warning" size="small" />;
+        return <Chip icon={<Schedule />} label="Pending" color="warning" size="small" />;
       case 'cancelled':
         return <Chip icon={<CancelIcon />} label="Cancelled" color="error" size="small" />;
+      case 'completed':
+        return <Chip icon={<CheckCircle />} label="Completed" color="info" size="small" />;
       default:
         return <Chip label={status} size="small" />;
     }
   };
+
+  if (!user) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
+        <Typography variant="h5" gutterBottom>
+          Please sign in to view your bookings
+        </Typography>
+        <Button variant="contained" onClick={() => navigate('/auth/login')} sx={{ mt: 2 }}>
+          Sign In
+        </Button>
+      </Container>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -66,8 +115,8 @@ export const BookingHistory = () => {
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-          <Tab label="Active Bookings" />
-          <Tab label="Past Bookings" />
+          <Tab label={`Active (${bookings.filter(b => b.status === 'pending' || b.status === 'confirmed').length})`} />
+          <Tab label={`Past (${bookings.filter(b => b.status === 'cancelled' || b.status === 'completed').length})`} />
         </Tabs>
       </Box>
 
@@ -76,36 +125,42 @@ export const BookingHistory = () => {
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No bookings found
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             {activeTab === 0
               ? 'You have no active bookings at the moment'
               : 'You have no past bookings'}
           </Typography>
+          <Button variant="contained" onClick={() => navigate('/search')}>
+            Explore Hotels
+          </Button>
         </Paper>
       ) : (
         <Grid container spacing={3}>
           {filteredBookings.map((booking) => {
-            const room = getRoom(booking.roomId);
+            const room = booking.room;
+            const hotel = room?.hotel;
+            
             return (
               <Grid item xs={12} key={booking.id}>
                 <Card sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' } }}>
-                  {room && (
-                    <CardMedia
-                      component="img"
-                      sx={{ width: { xs: '100%', sm: 200 }, height: { xs: 200, sm: 'auto' } }}
-                      image={room.image}
-                      alt={booking.roomName}
-                    />
-                  )}
+                  <CardMedia
+                    component="img"
+                    sx={{ width: { xs: '100%', sm: 200 }, height: { xs: 200, sm: 'auto' } }}
+                    image={room?.images?.[0] || hotel?.images?.[0] || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800'}
+                    alt={room?.name || 'Hotel Room'}
+                  />
 
                   <CardContent sx={{ flex: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                       <Box>
                         <Typography variant="h6" fontWeight={600}>
-                          {booking.roomName}
+                          {room?.name || 'Room'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {booking.hotelName}
+                          {hotel?.name || 'Hotel'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {hotel?.city}, {hotel?.province}
                         </Typography>
                       </Box>
                       {getStatusChip(booking.status)}
@@ -120,7 +175,12 @@ export const BookingHistory = () => {
                               Check-in
                             </Typography>
                             <Typography variant="body2" fontWeight={600}>
-                              {new Date(booking.checkIn).toLocaleDateString()}
+                              {new Date(booking.check_in).toLocaleDateString('en-PH', { 
+                                weekday: 'short', 
+                                month: 'short', 
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
                             </Typography>
                           </Box>
                         </Box>
@@ -134,7 +194,12 @@ export const BookingHistory = () => {
                               Check-out
                             </Typography>
                             <Typography variant="body2" fontWeight={600}>
-                              {new Date(booking.checkOut).toLocaleDateString()}
+                              {new Date(booking.check_out).toLocaleDateString('en-PH', { 
+                                weekday: 'short', 
+                                month: 'short', 
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
                             </Typography>
                           </Box>
                         </Box>
@@ -148,20 +213,20 @@ export const BookingHistory = () => {
                               Guests
                             </Typography>
                             <Typography variant="body2" fontWeight={600}>
-                              {booking.guests}
+                              {booking.guests} {booking.guests === 1 ? 'Guest' : 'Guests'}
                             </Typography>
                           </Box>
                         </Box>
                       </Grid>
                     </Grid>
 
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
                       <Box>
                         <Typography variant="caption" color="text.secondary">
-                          Booking ID: {booking.id}
+                          Booked on {new Date(booking.created_at).toLocaleDateString('en-PH')}
                         </Typography>
                         <Typography variant="h6" color="primary.main" fontWeight={700}>
-                          ${booking.totalPrice.toFixed(2)}
+                          {formatPrice(booking.total_price)}
                         </Typography>
                       </Box>
 
@@ -175,7 +240,7 @@ export const BookingHistory = () => {
                           Receipt
                         </Button>
 
-                        {booking.status !== 'cancelled' && (
+                        {(booking.status === 'pending' || booking.status === 'confirmed') && (
                           <Button
                             variant="outlined"
                             color="error"
@@ -202,9 +267,17 @@ export const BookingHistory = () => {
           <Typography>Are you sure you want to cancel this booking? This action cannot be undone.</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCancelDialog({ open: false, bookingId: '' })}>Keep Booking</Button>
-          <Button variant="contained" color="error" onClick={handleCancelBooking}>
-            Cancel Booking
+          <Button onClick={() => setCancelDialog({ open: false, bookingId: '' })} disabled={cancelling}>
+            Keep Booking
+          </Button>
+          <Button 
+            variant="contained" 
+            color="error" 
+            onClick={handleCancelBooking}
+            disabled={cancelling}
+            startIcon={cancelling ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {cancelling ? 'Cancelling...' : 'Cancel Booking'}
           </Button>
         </DialogActions>
       </Dialog>

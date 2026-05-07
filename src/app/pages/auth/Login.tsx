@@ -1,61 +1,115 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
-import { TextField, Button, Typography, Box, Divider, Alert } from '@mui/material';
-import { Hotel, Login as LoginIcon } from '@mui/icons-material';
-import { useApp } from '../../context/AppContext';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { TextField, Button, Typography, Box, Divider, Alert, CircularProgress } from '@mui/material';
+import { Flight, Login as LoginIcon, Google, Facebook } from '@mui/icons-material';
+import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
 
 export const Login = () => {
   const navigate = useNavigate();
-  const { setUser } = useApp();
+  const [searchParams] = useSearchParams();
+  const { signInWithEmail, signInWithGoogle, signInWithFacebook } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<'google' | 'facebook' | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const errorMessage = searchParams.get('error');
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
-    if (email === 'admin@hotel.com' && password === 'admin123') {
-      setUser({
-        id: '1',
-        name: 'Admin User',
-        email: 'admin@hotel.com',
-        role: 'admin',
-      });
-      toast.success('Welcome back, Admin!');
-      navigate('/admin');
-    } else if (email && password) {
-      setUser({
-        id: '2',
-        name: 'John Doe',
-        email: email,
-        role: 'customer',
-      });
-      toast.success('Login successful!');
-      navigate('/');
+    const { error } = await signInWithEmail(email, password);
+    
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
     } else {
-      toast.error('Please enter valid credentials');
+      toast.success('Maligayang pagbabalik! Welcome back!');
+      navigate('/');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setSocialLoading('google');
+    const { error } = await signInWithGoogle();
+    if (error) {
+      toast.error(error.message);
+      setSocialLoading(null);
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    setSocialLoading('facebook');
+    const { error } = await signInWithFacebook();
+    if (error) {
+      toast.error(error.message);
+      setSocialLoading(null);
     }
   };
 
   return (
     <Box>
       <Box sx={{ textAlign: 'center', mb: 3 }}>
-        <Hotel sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+          <Flight sx={{ fontSize: 48, color: 'primary.main', transform: 'rotate(-45deg)' }} />
+        </Box>
         <Typography variant="h4" fontWeight={700} gutterBottom>
-          Welcome Back
+          Maligayang Pagbabalik!
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Sign in to continue to HotelBooking
+          Sign in to continue to EBook Na PH
         </Typography>
       </Box>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="caption">
-          <strong>Demo Credentials:</strong><br />
-          Customer: any email + password<br />
-          Admin: admin@hotel.com / admin123
+      {errorMessage && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {errorMessage}
+        </Alert>
+      )}
+
+      {/* Social Login Buttons */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+        <Button
+          fullWidth
+          variant="outlined"
+          size="large"
+          startIcon={socialLoading === 'google' ? <CircularProgress size={20} /> : <Google />}
+          onClick={handleGoogleSignIn}
+          disabled={socialLoading !== null}
+          sx={{
+            py: 1.5,
+            borderColor: '#E2E8F0',
+            color: 'text.primary',
+            '&:hover': { borderColor: '#CBD5E1', bgcolor: '#F8FAFC' },
+          }}
+        >
+          Continue with Google
+        </Button>
+        <Button
+          fullWidth
+          variant="outlined"
+          size="large"
+          startIcon={socialLoading === 'facebook' ? <CircularProgress size={20} /> : <Facebook />}
+          onClick={handleFacebookSignIn}
+          disabled={socialLoading !== null}
+          sx={{
+            py: 1.5,
+            borderColor: '#E2E8F0',
+            color: '#1877F2',
+            '&:hover': { borderColor: '#1877F2', bgcolor: 'rgba(24, 119, 242, 0.05)' },
+          }}
+        >
+          Continue with Facebook
+        </Button>
+      </Box>
+
+      <Divider sx={{ my: 3 }}>
+        <Typography variant="caption" color="text.secondary">
+          or sign in with email
         </Typography>
-      </Alert>
+      </Divider>
 
       <form onSubmit={handleSubmit}>
         <TextField
@@ -66,6 +120,7 @@ export const Login = () => {
           onChange={(e) => setEmail(e.target.value)}
           margin="normal"
           required
+          disabled={loading}
         />
 
         <TextField
@@ -76,10 +131,11 @@ export const Login = () => {
           onChange={(e) => setPassword(e.target.value)}
           margin="normal"
           required
+          disabled={loading}
         />
 
         <Box sx={{ textAlign: 'right', mt: 1, mb: 2 }}>
-          <Link to="/auth/forgot-password" style={{ textDecoration: 'none', fontSize: '0.875rem', color: '#3B82F6' }}>
+          <Link to="/auth/forgot-password" style={{ textDecoration: 'none', fontSize: '0.875rem', color: '#0066B3' }}>
             Forgot Password?
           </Link>
         </Box>
@@ -89,22 +145,17 @@ export const Login = () => {
           type="submit"
           variant="contained"
           size="large"
-          startIcon={<LoginIcon />}
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <LoginIcon />}
           sx={{ mt: 2, mb: 2, py: 1.5 }}
         >
-          Sign In
+          {loading ? 'Signing In...' : 'Sign In'}
         </Button>
       </form>
 
-      <Divider sx={{ my: 3 }}>
-        <Typography variant="caption" color="text.secondary">
-          OR
-        </Typography>
-      </Divider>
-
       <Typography variant="body2" align="center">
-        Don't have an account?{' '}
-        <Link to="/auth/register" style={{ textDecoration: 'none', color: '#3B82F6', fontWeight: 600 }}>
+        {"Don't have an account? "}
+        <Link to="/auth/register" style={{ textDecoration: 'none', color: '#0066B3', fontWeight: 600 }}>
           Sign Up
         </Link>
       </Typography>

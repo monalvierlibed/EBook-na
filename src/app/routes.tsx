@@ -7,6 +7,7 @@ import { AuthLayout } from "./components/layouts/AuthLayout";
 import { Login } from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
 import { ForgotPassword } from "./pages/auth/ForgotPassword";
+import { AuthCallback } from "./pages/auth/AuthCallback";
 
 // Customer Pages
 import { Home } from "./pages/customer/Home";
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
       { path: "login", Component: Login },
       { path: "register", Component: Register },
       { path: "forgot-password", Component: ForgotPassword },
+      { path: "callback", Component: AuthCallback },
     ],
   },
   {
@@ -40,6 +42,7 @@ export const router = createBrowserRouter([
       { index: true, Component: Home },
       { path: "search", Component: RoomSearch },
       { path: "room/:id", Component: RoomDetails },
+      { path: "hotel/:hotelId", Component: RoomDetails },
       { path: "booking/:roomId", Component: Booking },
       { path: "bookings", Component: BookingHistory },
       { path: "notifications", Component: Notifications },
