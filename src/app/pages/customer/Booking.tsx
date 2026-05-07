@@ -20,8 +20,10 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Chip,
+  Divider,
 } from '@mui/material';
-import { CheckCircle, CalendarMonth, Person } from '@mui/icons-material';
+import { CheckCircle, CalendarMonth, Person, LocalOffer } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase, RoomWithHotel } from '../../../lib/supabase';
@@ -45,11 +47,14 @@ export const Booking = () => {
     lastName: '',
     email: '',
     phone: '',
+    promoCode: '',
   });
 
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bookingId, setBookingId] = useState('');
+  const [confirmationNumber, setConfirmationNumber] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchRoom = async () => {
@@ -131,7 +136,43 @@ export const Booking = () => {
   const subtotal = room.price_per_night * nights;
   const serviceFee = subtotal * 0.1;
   const taxes = subtotal * 0.12; // 12% VAT in Philippines
-  const total = subtotal + serviceFee + taxes;
+  const promoCodeNormalized = formData.promoCode.trim().toUpperCase();
+  const promoDiscountRate =
+    promoCodeNormalized === 'SUMMER10' ? 0.1 :
+    promoCodeNormalized === 'WELCOME5' ? 0.05 :
+    0;
+  const promoDiscount = subtotal * promoDiscountRate;
+  const total = subtotal + serviceFee + taxes - promoDiscount;
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    const now = new Date().toISOString().split('T')[0];
+
+    if (!formData.firstName.trim()) errors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
+    if (!formData.email.trim()) errors.email = 'Email is required';
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Enter a valid email address';
+    }
+    if (!formData.phone.trim()) errors.phone = 'Phone number is required';
+    if (!formData.checkIn) errors.checkIn = 'Check-in date is required';
+    if (!formData.checkOut) errors.checkOut = 'Check-out date is required';
+    if (formData.checkIn && formData.checkIn < now) {
+      errors.checkIn = 'Check-in date cannot be in the past';
+    }
+    if (formData.checkIn && formData.checkOut && formData.checkOut <= formData.checkIn) {
+      errors.checkOut = 'Check-out date must be later than check-in date';
+    }
+    if (formData.guests < 1 || formData.guests > room.capacity) {
+      errors.guests = `Guests must be between 1 and ${room.capacity}`;
+    }
+    if (promoCodeNormalized && promoDiscountRate === 0) {
+      errors.promoCode = 'Invalid promo code. Try SUMMER10 or WELCOME5';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,8 +183,8 @@ export const Booking = () => {
       return;
     }
 
-    if (!formData.checkIn || !formData.checkOut) {
-      toast.error('Please select check-in and check-out dates');
+    if (!validateForm()) {
+      toast.error('Please fix the highlighted fields');
       return;
     }
 
@@ -163,7 +204,8 @@ export const Booking = () => {
       toast.error(error.message);
       setSubmitting(false);
     } else {
-      setBookingId(`EBOK-${Date.now().toString(36).toUpperCase()}`);
+      setBookingId(`BK-${Date.now().toString(36).toUpperCase()}`);
+      setConfirmationNumber(`CNF-${Math.random().toString(36).slice(2, 8).toUpperCase()}`);
       setShowConfirmation(true);
       setSubmitting(false);
     }
@@ -171,6 +213,9 @@ export const Booking = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (fieldErrors[e.target.name]) {
+      setFieldErrors((prev) => ({ ...prev, [e.target.name]: '' }));
+    }
   };
 
   return (
@@ -200,6 +245,8 @@ export const Booking = () => {
                     onChange={handleChange}
                     required
                     disabled={submitting}
+                    error={Boolean(fieldErrors.firstName)}
+                    helperText={fieldErrors.firstName}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -211,6 +258,8 @@ export const Booking = () => {
                     onChange={handleChange}
                     required
                     disabled={submitting}
+                    error={Boolean(fieldErrors.lastName)}
+                    helperText={fieldErrors.lastName}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -223,6 +272,8 @@ export const Booking = () => {
                     onChange={handleChange}
                     required
                     disabled={submitting}
+                    error={Boolean(fieldErrors.email)}
+                    helperText={fieldErrors.email}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -235,6 +286,8 @@ export const Booking = () => {
                     required
                     disabled={submitting}
                     placeholder="+63"
+                    error={Boolean(fieldErrors.phone)}
+                    helperText={fieldErrors.phone}
                   />
                 </Grid>
               </Grid>
@@ -258,6 +311,8 @@ export const Booking = () => {
                     inputProps={{ min: new Date().toISOString().split('T')[0] }}
                     required
                     disabled={submitting}
+                    error={Boolean(fieldErrors.checkIn)}
+                    helperText={fieldErrors.checkIn}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
@@ -272,6 +327,8 @@ export const Booking = () => {
                     inputProps={{ min: formData.checkIn || new Date().toISOString().split('T')[0] }}
                     required
                     disabled={submitting}
+                    error={Boolean(fieldErrors.checkOut)}
+                    helperText={fieldErrors.checkOut}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -289,6 +346,11 @@ export const Booking = () => {
                       ))}
                     </Select>
                   </FormControl>
+                  {fieldErrors.guests && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                      {fieldErrors.guests}
+                    </Typography>
+                  )}
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
@@ -348,6 +410,17 @@ export const Booking = () => {
                 </Box>
               </Box>
 
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Room amenities
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  {(room.amenities || []).slice(0, 6).map((amenity) => (
+                    <Chip key={amenity} size="small" variant="outlined" label={amenity} />
+                  ))}
+                </Box>
+              </Box>
+
               <Box sx={{ bgcolor: '#F1F5F9', p: 2, borderRadius: 2, mb: 3 }}>
                 <Typography variant="body2" fontWeight={600} gutterBottom>
                   Payment Summary
@@ -366,6 +439,16 @@ export const Booking = () => {
                   <Typography variant="body2">VAT (12%)</Typography>
                   <Typography variant="body2">{formatPrice(taxes)}</Typography>
                 </Box>
+                {promoDiscount > 0 && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2" color="success.main">
+                      Promo Discount ({promoCodeNormalized})
+                    </Typography>
+                    <Typography variant="body2" color="success.main">
+                      -{formatPrice(promoDiscount)}
+                    </Typography>
+                  </Box>
+                )}
                 <Box sx={{ borderTop: '1px solid #CBD5E1', pt: 1, mt: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body1" fontWeight={700}>
@@ -377,6 +460,22 @@ export const Booking = () => {
                   </Box>
                 </Box>
               </Box>
+
+              <TextField
+                fullWidth
+                label="Promo Code"
+                name="promoCode"
+                value={formData.promoCode}
+                onChange={handleChange}
+                disabled={submitting}
+                placeholder="Try SUMMER10 or WELCOME5"
+                error={Boolean(fieldErrors.promoCode)}
+                helperText={fieldErrors.promoCode || 'Optional discount code'}
+                InputProps={{
+                  startAdornment: <LocalOffer sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />,
+                }}
+                sx={{ mb: 2 }}
+              />
 
               <Button 
                 fullWidth 
@@ -409,11 +508,20 @@ export const Booking = () => {
             Salamat! Your booking has been successfully placed.
           </Typography>
           <Paper sx={{ bgcolor: '#F1F5F9', p: 2, mb: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Booking Reference
+            <Typography variant="body2" color="text.secondary" gutterBottom>Booking ID</Typography>
+            <Typography variant="h6" fontWeight={600}>{bookingId}</Typography>
+            <Divider sx={{ my: 1.5 }} />
+            <Typography variant="body2" color="text.secondary" gutterBottom>Confirmation Number</Typography>
+            <Typography variant="h6" fontWeight={600}>{confirmationNumber}</Typography>
+            <Divider sx={{ my: 1.5 }} />
+            <Typography variant="body2" color="text.secondary">
+              {room.name} at {room.hotel?.name}
             </Typography>
-            <Typography variant="h6" fontWeight={600}>
-              {bookingId}
+            <Typography variant="body2" color="text.secondary">
+              {formData.checkIn} to {formData.checkOut} ({nights} nights) - {formData.guests} guest(s)
+            </Typography>
+            <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 1 }}>
+              Total Paid: {formatPrice(total)}
             </Typography>
           </Paper>
           <Typography variant="body2" color="text.secondary">
