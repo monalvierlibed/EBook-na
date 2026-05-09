@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { AppBar, Toolbar, Typography, Button, IconButton, Badge, Container, Box, Avatar, Menu, MenuItem, Divider } from '@mui/material';
-import { Search, History, Notifications, ExitToApp, Flight, Mail, Phone, Facebook, Twitter, Instagram } from '@mui/icons-material';
+import { Search, History, Notifications, ExitToApp, Person, Flight } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useState } from 'react';
@@ -31,23 +31,27 @@ export const CustomerLayout = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'white', borderBottom: '1px solid #E5E7EB' }}>
-        <Toolbar sx={{ minHeight: 64 }}>
+      <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'white', borderBottom: '1px solid #E2E8F0' }}>
+        <Toolbar>
           <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
-            <Flight sx={{ color: '#111827', mr: 0.5, transform: 'rotate(-45deg)', fontSize: 18 }} />
+            <Flight sx={{ color: 'primary.main', mr: 0.5, transform: 'rotate(-45deg)' }} />
           </Box>
           <Typography 
-            variant="subtitle1" 
+            variant="h6" 
             component={Link} 
             to="/" 
             sx={{ 
               flexGrow: 1, 
               textDecoration: 'none', 
-              color: '#111827', 
-              fontWeight: 700,
+              color: 'primary.main', 
+              fontWeight: 800,
+              letterSpacing: '-0.5px',
             }}
           >
-            E-Book Mo
+            EBook Na
+            <Typography component="span" sx={{ color: 'secondary.main', fontWeight: 800, ml: 0.5 }}>
+              PH
+            </Typography>
           </Typography>
 
           <Button
@@ -64,15 +68,7 @@ export const CustomerLayout = () => {
             startIcon={<Search />}
             sx={{ mx: 1, color: location.pathname === '/search' ? 'primary.main' : 'text.secondary' }}
           >
-            Hotels
-          </Button>
-
-          <Button
-            component={Link}
-            to="/search"
-            sx={{ mx: 1, color: 'text.secondary' }}
-          >
-            Rooms
+            Explore
           </Button>
 
           {user && (
@@ -99,17 +95,11 @@ export const CustomerLayout = () => {
               <IconButton onClick={handleMenuOpen} sx={{ ml: 1 }}>
                 <Avatar 
                   src={profile?.avatar_url || user?.user_metadata?.avatar_url} 
-                  sx={{ width: 32, height: 32, bgcolor: 'white', border: '1px solid #D1D5DB', color: '#6B7280' }}
+                  sx={{ width: 36, height: 36, bgcolor: 'primary.main' }}
                 >
                   {displayName.charAt(0).toUpperCase()}
                 </Avatar>
               </IconButton>
-              <Box sx={{ ml: 1, display: { xs: 'none', md: 'block' } }}>
-                <Typography variant="caption" color="text.secondary">Your account</Typography>
-                <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: -0.3 }}>
-                  name
-                </Typography>
-              </Box>
               <Menu
                 anchorEl={anchorEl}
                 open={Boolean(anchorEl)}
@@ -146,27 +136,32 @@ export const CustomerLayout = () => {
         <Outlet />
       </Box>
 
-      <Box component="footer" sx={{ bgcolor: '#0F1F3A', color: 'white', py: 5, mt: 8 }}>
+      <Box component="footer" sx={{ bgcolor: '#0F172A', color: 'white', py: 6, mt: 8 }}>
         <Container maxWidth="lg">
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', gap: 4 }}>
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Flight sx={{ color: '#7EA6FF', mr: 0.5, transform: 'rotate(-45deg)', fontSize: 18 }} />
-                <Typography variant="subtitle1" fontWeight={700}>E-Book Mo</Typography>
+                <Flight sx={{ color: '#FCD116', mr: 0.5, transform: 'rotate(-45deg)' }} />
+                <Typography variant="h6" fontWeight={800}>
+                  EBook Na
+                  <Typography component="span" sx={{ color: '#FCD116', fontWeight: 800, ml: 0.5 }}>
+                    PH
+                  </Typography>
+                </Typography>
               </Box>
               <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ maxWidth: 300 }}>
-                Your trusted partner for hassle-free hotel bookings.
+                Discover the beauty of the Philippines. Book hotels, resorts, and accommodations across the archipelago.
               </Typography>
             </Box>
             
             <Box>
               <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
-                Quick Links
+                Popular Destinations
               </Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>About Us</Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Hotels</Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Rooms</Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Contact</Typography>
+              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Boracay</Typography>
+              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Palawan</Typography>
+              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Cebu</Typography>
+              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Siargao</Typography>
             </Box>
             
             <Box>
@@ -174,32 +169,17 @@ export const CustomerLayout = () => {
                 Support
               </Typography>
               <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Help Center</Typography>
+              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Contact Us</Typography>
               <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Terms of Service</Typography>
               <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>Privacy Policy</Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1 }}>FAQs</Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
-                Contact Us
-              </Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Mail sx={{ fontSize: 14 }} /> support@ebookmo.com
-              </Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Phone sx={{ fontSize: 14 }} /> +1 (555) 123-4567
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.8)' }}><Facebook sx={{ fontSize: 16 }} /></IconButton>
-                <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.8)' }}><Twitter sx={{ fontSize: 16 }} /></IconButton>
-                <IconButton size="small" sx={{ color: 'rgba(255,255,255,0.8)' }}><Instagram sx={{ fontSize: 16 }} /></IconButton>
-              </Box>
             </Box>
           </Box>
           
           <Divider sx={{ my: 4, borderColor: 'rgba(255,255,255,0.1)' }} />
           
-          <Typography variant="body2" align="center" color="rgba(255,255,255,0.5)">© 2026 E-Book Mo. All rights reserved.</Typography>
+          <Typography variant="body2" align="center" color="rgba(255,255,255,0.5)">
+            © 2026 EBook Na PH. All rights reserved. Made with love in the Philippines.
+          </Typography>
         </Container>
       </Box>
     </Box>

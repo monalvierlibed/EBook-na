@@ -9,25 +9,40 @@ import {
   ListItemText,
   Chip,
   Divider,
-  Button,
-  Stack,
 } from '@mui/material';
-import { CheckCircle, Cancel, Pending, Info, MarkEmailRead, DeleteSweep } from '@mui/icons-material';
+import { CheckCircle, Cancel, Pending, Info } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 
 export const Notifications = () => {
-  const { notifications, markNotificationRead, markAllNotificationsRead, clearNotifications } = useApp();
+  const { bookings } = useApp();
+
+  const notifications = bookings.map((booking) => ({
+    id: booking.id,
+    type: booking.status,
+    title:
+      booking.status === 'approved'
+        ? 'Booking Confirmed'
+        : booking.status === 'pending'
+        ? 'Booking Pending'
+        : 'Booking Cancelled',
+    message:
+      booking.status === 'approved'
+        ? `Your booking for ${booking.roomName} has been confirmed.`
+        : booking.status === 'pending'
+        ? `Your booking for ${booking.roomName} is awaiting confirmation.`
+        : `Your booking for ${booking.roomName} has been cancelled.`,
+    date: new Date(booking.createdAt),
+    isNew: booking.status === 'approved',
+  }));
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'booking_confirmed':
+      case 'approved':
         return <CheckCircle sx={{ color: 'success.main' }} />;
-      case 'booking_cancelled':
+      case 'cancelled':
         return <Cancel sx={{ color: 'error.main' }} />;
-      case 'booking_pending':
+      case 'pending':
         return <Pending sx={{ color: 'warning.main' }} />;
-      case 'booking_completed':
-        return <CheckCircle sx={{ color: 'info.main' }} />;
       default:
         return <Info sx={{ color: 'info.main' }} />;
     }
@@ -42,15 +57,6 @@ export const Notifications = () => {
         Stay updated with your booking status
       </Typography>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mb: 2 }}>
-        <Button variant="outlined" startIcon={<MarkEmailRead />} onClick={markAllNotificationsRead}>
-          Mark all as read
-        </Button>
-        <Button variant="outlined" color="error" startIcon={<DeleteSweep />} onClick={clearNotifications}>
-          Clear all
-        </Button>
-      </Stack>
-
       <Paper>
         {notifications.length === 0 ? (
           <Box sx={{ p: 8, textAlign: 'center' }}>
@@ -63,10 +69,8 @@ export const Notifications = () => {
             {notifications.map((notification, index) => (
               <Box key={notification.id}>
                 <ListItem
-                  onClick={() => markNotificationRead(notification.id)}
                   sx={{
                     bgcolor: notification.isNew ? '#F0F9FF' : 'transparent',
-                    cursor: 'pointer',
                     '&:hover': { bgcolor: '#F8FAFC' },
                   }}
                 >
@@ -77,7 +81,6 @@ export const Notifications = () => {
                         <Typography variant="subtitle1" fontWeight={600}>
                           {notification.title}
                         </Typography>
-                        <Chip label={notification.channel === 'email' ? 'Email' : 'In-app'} size="small" variant="outlined" />
                         {notification.isNew && <Chip label="New" color="primary" size="small" />}
                       </Box>
                     }
@@ -87,7 +90,7 @@ export const Notifications = () => {
                           {notification.message}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {new Date(notification.createdAt).toLocaleString()}
+                          {notification.date.toLocaleString()}
                         </Typography>
                       </>
                     }

@@ -58,9 +58,9 @@ export const Home = () => {
       {/* Hero Section */}
       <Box
         sx={{
-          background: 'linear-gradient(180deg, #EEE9FF 0%, #F7F5FF 100%)',
-          color: '#1E2133',
-          py: { xs: 6, md: 8 },
+          background: 'linear-gradient(135deg, #0066B3 0%, #004080 50%, #002855 100%)',
+          color: 'white',
+          py: { xs: 8, md: 12 },
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -72,41 +72,38 @@ export const Home = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            opacity: 0.45,
-            background: 'radial-gradient(circle at center, #D9D2FF 0%, rgba(217, 210, 255, 0) 60%)',
+            opacity: 0.1,
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
           }}
         />
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Chip
-              label="Book hotels and rooms with ease"
+            <Chip 
+              label="Discover 7,641 Islands" 
               sx={{ 
-                bgcolor: '#FFFFFF',
-                border: '1px solid #E6E1FA',
-                color: '#4B4D64',
+                bgcolor: 'rgba(252, 209, 22, 0.2)', 
+                color: '#FCD116', 
                 fontWeight: 600,
                 mb: 2,
               }} 
             />
-            <Typography variant="h2" fontWeight={800} sx={{ mb: 1, fontSize: { xs: '2rem', md: '3rem' }, color: '#1E2133' }}>
-              Find Your Perfect Stay
+            <Typography variant="h2" fontWeight={800} sx={{ mb: 2, fontSize: { xs: '2rem', md: '3rem' } }}>
+              Book Your Perfect
+              <Box component="span" sx={{ color: '#FCD116', display: 'block' }}>
+                Philippine Getaway
+              </Box>
             </Typography>
-            <Typography variant="body1" sx={{ mb: 3, color: '#5E617A', fontWeight: 400 }}>
-              Book hotels and rooms with 24/7 support and best-price guarantees.
+            <Typography variant="h6" sx={{ mb: 4, opacity: 0.9, fontWeight: 400 }}>
+              From pristine beaches to mountain retreats, find your ideal stay across the Philippines
             </Typography>
           </Box>
 
           <Box sx={{ 
             display: 'flex', 
             gap: 2, 
-            maxWidth: 760, 
+            maxWidth: 700, 
             mx: 'auto',
             flexDirection: { xs: 'column', sm: 'row' },
-            bgcolor: 'white',
-            border: '1px solid #E7E5F4',
-            borderRadius: 3,
-            boxShadow: '0 8px 24px rgba(17, 24, 39, 0.08)',
-            p: 2,
           }}>
             <TextField
               fullWidth
@@ -122,8 +119,9 @@ export const Home = () => {
                 ),
               }}
               sx={{
-                bgcolor: '#F9FAFB',
+                bgcolor: 'white',
                 borderRadius: 2,
+                '& fieldset': { border: 'none' },
               }}
             />
             <Button
@@ -131,15 +129,15 @@ export const Home = () => {
               size="large"
               onClick={handleSearch}
               sx={{
-                bgcolor: '#3478F6',
-                color: '#FFFFFF',
+                bgcolor: '#FCD116',
+                color: '#0F172A',
                 px: 4,
                 fontWeight: 700,
-                '&:hover': { bgcolor: '#2B63CC' },
+                '&:hover': { bgcolor: '#E6BC00' },
                 minWidth: { xs: '100%', sm: 'auto' },
               }}
             >
-              Search Hotels
+              Search
             </Button>
           </Box>
         </Container>
@@ -186,7 +184,7 @@ export const Home = () => {
           </Button>
         </Box>
 
-        <Grid container spacing={2} sx={{ mb: 7 }}>
+        <Grid container spacing={2} sx={{ mb: 8 }}>
           {destinations.slice(0, 4).map((destination) => (
             <Grid item xs={6} md={3} key={destination.id}>
               <Card 
@@ -196,13 +194,13 @@ export const Home = () => {
                   overflow: 'hidden',
                   cursor: 'pointer',
                   transition: 'transform 0.2s',
-                  '&:hover': { transform: 'scale(1.015)' },
+                  '&:hover': { transform: 'scale(1.02)' },
                 }}
                 onClick={() => navigate(`/search?destination=${destination.id}`)}
               >
                 <CardMedia
                   component="img"
-                  height="160"
+                  height="200"
                   image={destination.image_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'}
                   alt={destination.name}
                   sx={{ filter: 'brightness(0.8)' }}
@@ -213,12 +211,12 @@ export const Home = () => {
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    p: 1.5,
+                    p: 2,
                     background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
                     color: 'white',
                   }}
                 >
-                  <Typography variant="subtitle1" fontWeight={700}>
+                  <Typography variant="h6" fontWeight={700}>
                     {destination.name}
                   </Typography>
                   <Typography variant="caption" sx={{ opacity: 0.9 }}>
@@ -247,7 +245,7 @@ export const Home = () => {
           </Button>
         </Box>
 
-        <Grid container spacing={2.5} sx={{ mb: 7 }}>
+        <Grid container spacing={3} sx={{ mb: 8 }}>
           {featuredHotels.slice(0, 6).map((hotel) => {
             const lowestPrice = getLowestPrice(hotel);
             return (
@@ -268,7 +266,7 @@ export const Home = () => {
                   <Box sx={{ position: 'relative' }}>
                     <CardMedia
                       component="img"
-                      height="168"
+                      height="200"
                       image={hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'}
                       alt={hotel.name}
                     />
@@ -287,9 +285,9 @@ export const Home = () => {
                       />
                     )}
                   </Box>
-                  <CardContent sx={{ flexGrow: 1, p: 1.75 }}>
+                  <CardContent sx={{ flexGrow: 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-                      <Typography variant="subtitle1" fontWeight={600} sx={{ lineHeight: 1.3 }}>
+                      <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3 }}>
                         {hotel.name}
                       </Typography>
                       <Chip
@@ -309,7 +307,7 @@ export const Home = () => {
                       ))}
                     </Box>
                     {lowestPrice && (
-                      <Typography variant="h6" color="primary.main" fontWeight={700}>
+                      <Typography variant="h5" color="primary.main" fontWeight={700}>
                         {formatPrice(lowestPrice)}
                         <Typography component="span" variant="body2" color="text.secondary" fontWeight={400}>
                           /night
@@ -317,7 +315,7 @@ export const Home = () => {
                       </Typography>
                     )}
                   </CardContent>
-                  <CardActions sx={{ p: 1.75, pt: 0 }}>
+                  <CardActions sx={{ p: 2, pt: 0 }}>
                     <Button
                       fullWidth
                       variant="contained"

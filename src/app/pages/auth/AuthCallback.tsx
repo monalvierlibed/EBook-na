@@ -8,10 +8,12 @@ export const AuthCallback = () => {
 
   useEffect(() => {
     const handleAuthCallback = async () => {
-      const { searchParams } = new URL(window.location.href);
+      const url = new URL(window.location.href);
+      const searchParams = url.searchParams;
       const code = searchParams.get('code');
       const error = searchParams.get('error');
       const errorDescription = searchParams.get('error_description');
+      const hash = window.location.hash;
 
       if (error) {
         console.error('Auth error:', error, errorDescription);
@@ -22,23 +24,62 @@ export const AuthCallback = () => {
       if (code) {
         try {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          
+
           if (exchangeError) {
             console.error('Session exchange error:', exchangeError);
             navigate('/auth/login?error=' + encodeURIComponent(exchangeError.message));
             return;
           }
 
-          // Successfully authenticated
           navigate('/');
+          return;
         } catch (err) {
           console.error('Callback error:', err);
           navigate('/auth/login?error=Authentication failed');
+          return;
         }
-      } else {
-        // No code present, redirect to login
-        navigate('/auth/login');
       }
+
+      if (hash && hash.length > 0) {
+        try {
+          const { data, error: sessionError } = await supabase.auth.getSession();
+
+          if (sessionError) {
+            console.error('Session retrieval error:', sessionError);
+            navigate('/auth/login?error=' + encodeURIComponent(sessionError.message));
+            return;
+          }
+
+          if (data?.session) {
+            navigate('/');
+            return;
+          }
+
+          // If session is not immediately available, wait briefly and retry.
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          const { data: retryData, error: retryError } = await supabase.auth.getSession();
+
+          if (retryError) {
+            console.error('Session retry error:', retryError);
+            navigate('/auth/login?error=' + encodeURIComponent(retryError.message));
+            return;
+          }
+
+          if (retryData?.session) {
+            navigate('/');
+            return;
+          }
+
+          navigate('/auth/login?error=Authentication failed');
+          return;
+        } catch (err) {
+          console.error('Callback hash error:', err);
+          navigate('/auth/login?error=Authentication failed');
+          return;
+        }
+      }
+
+      navigate('/auth/login');
     };
 
     handleAuthCallback();
