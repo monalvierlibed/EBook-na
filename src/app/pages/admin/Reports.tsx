@@ -18,12 +18,38 @@ import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 import { useApp } from '../../context/AppContext';
 import { toast } from 'sonner';
 
+// Helper function to trigger CSV download
+const downloadCSV = (data: any[], filename: string) => {
+  if (!data || data.length === 0) {
+    toast.error('No data available to export');
+    return;
+  }
+  const headers = Object.keys(data[0]);
+  const csvRows = [
+    headers.join(','),
+    ...data.map(row => headers.map(fieldName => {
+      let val = row[fieldName] === null || row[fieldName] === undefined ? '' : String(row[fieldName]);
+      val = val.replace(/"/g, '""'); // escape quotes
+      if (val.search(/("|,|\n)/g) >= 0) val = `"${val}"`;
+      return val;
+    }).join(','))
+  ];
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', `${filename}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 export const Reports = () => {
   const { bookings, rooms } = useApp();
 
+  // FIX: Using total_price and 'confirmed' status
   const totalRevenue = bookings
-    .filter((b) => b.status === 'approved')
-    .reduce((sum, b) => sum + b.totalPrice, 0);
+    .filter((b: any) => b.status === 'confirmed' || b.status === 'completed' || b.status === 'approved')
+    .reduce((sum: number, b: any) => sum + (b.total_price || 0), 0);
 
   const monthlyRevenue = [
     { month: 'Jan', revenue: 12500, bookings: 45 },
@@ -33,17 +59,40 @@ export const Reports = () => {
     { month: 'May', revenue: 18400, bookings: 67 },
   ];
 
+  // FIX: Status mapping and Supabase schema compatibility
   const performanceData = [
     { metric: 'Average Booking Value', value: `$${(totalRevenue / (bookings.length || 1)).toFixed(2)}` },
-    { metric: 'Occupancy Rate', value: `${((rooms.filter(r => !r.available).length / rooms.length) * 100).toFixed(1)}%` },
+    { metric: 'Occupancy Rate', value: `${((rooms.filter((r: any) => !r.available).length / (rooms.length || 1)) * 100).toFixed(1)}%` },
     { metric: 'Total Bookings', value: bookings.length },
-    { metric: 'Approved Bookings', value: bookings.filter(b => b.status === 'approved').length },
-    { metric: 'Pending Bookings', value: bookings.filter(b => b.status === 'pending').length },
-    { metric: 'Cancellation Rate', value: `${((bookings.filter(b => b.status === 'cancelled').length / (bookings.length || 1)) * 100).toFixed(1)}%` },
+    { metric: 'Confirmed Bookings', value: bookings.filter((b: any) => b.status === 'confirmed' || b.status === 'approved').length },
+    { metric: 'Pending Bookings', value: bookings.filter((b: any) => b.status === 'pending').length },
+    { metric: 'Cancellation Rate', value: `${((bookings.filter((b: any) => b.status === 'cancelled').length / (bookings.length || 1)) * 100).toFixed(1)}%` },
   ];
 
   const handleExport = (type: string) => {
-    toast.success(`${type} report exported successfully`);
+    try {
+      if (type === 'Revenue' || type === 'Bookings') {
+        downloadCSV(monthlyRevenue, `Monthly_${type}_Report`);
+      } else if (type === 'Performance') {
+        downloadCSV(performanceData, 'Performance_Metrics_Report');
+      } else if (type === 'Full') {
+        // FIX: Export raw bookings data using the exact Supabase nested and snake_case schema
+        downloadCSV(bookings.map((b: any) => ({
+          BookingID: b.id,
+          RoomName: b.rooms?.name || 'N/A',
+          HotelName: b.rooms?.hotel?.name || 'N/A',
+          CheckIn: b.check_in ? new Date(b.check_in).toISOString().split('T')[0] : 'N/A',
+          CheckOut: b.check_out ? new Date(b.check_out).toISOString().split('T')[0] : 'N/A',
+          Guests: b.guests || 1,
+          TotalPrice: b.total_price || 0,
+          Status: b.status ? b.status.toUpperCase() : 'UNKNOWN',
+          CreatedAt: b.created_at ? new Date(b.created_at).toISOString() : 'N/A'
+        })), 'Full_Bookings_Ledger');
+      }
+      toast.success(`${type} report exported successfully`);
+    } catch (error) {
+      toast.error('Failed to export report');
+    }
   };
 
   return (
@@ -58,7 +107,7 @@ export const Reports = () => {
           </Typography>
         </Box>
         <Button variant="contained" startIcon={<Download />} onClick={() => handleExport('Full')}>
-          Export All Reports
+          Export Raw Booking Data
         </Button>
       </Box>
 
@@ -144,7 +193,7 @@ export const Reports = () => {
                 Revenue Trend
               </Typography>
               <Button size="small" startIcon={<Download />} onClick={() => handleExport('Revenue')}>
-                Export
+                Export CSV
               </Button>
             </Box>
             <ResponsiveContainer width="100%" height={300}>
@@ -167,7 +216,7 @@ export const Reports = () => {
                 Booking Trend
               </Typography>
               <Button size="small" startIcon={<Download />} onClick={() => handleExport('Bookings')}>
-                Export
+                Export CSV
               </Button>
             </Box>
             <ResponsiveContainer width="100%" height={260}>
@@ -189,7 +238,7 @@ export const Reports = () => {
             Performance Metrics
           </Typography>
           <Button size="small" startIcon={<Download />} onClick={() => handleExport('Performance')}>
-            Export
+            Export CSV
           </Button>
         </Box>
 

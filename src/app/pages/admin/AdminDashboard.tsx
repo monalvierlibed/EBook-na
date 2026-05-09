@@ -1,238 +1,339 @@
-import { Box, Typography, Grid, Paper, Card, CardContent } from '@mui/material';
+import { useState, useEffect } from 'react';
 import {
-  TrendingUp,
-  People,
-  Hotel,
+  Container,
+  Grid,
+  Paper,
+  Typography,
+  Box,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Avatar,
+} from '@mui/material';
+import {
   AttachMoney,
-  CheckCircle,
-  Pending,
-  Block,
+  Hotel,
+  People,
+  BookOnline,
+  Sensors,
 } from '@mui/icons-material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { useApp } from '../../context/AppContext';
+import { supabase } from '../../../lib/supabase';
+import { toast } from 'sonner';
 
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
+interface DashboardMetrics {
+  totalRevenue: number;
+  totalBookings: number;
+  totalRooms: number;
+  totalCustomers: number;
+}
+
+interface RecentBooking {
+  id: string;
+  created_at: string;
+  total_price: number;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  check_in: string;
+  check_out: string;
+  profiles: { full_name: string; email: string } | null;
+  rooms: { name: string; hotel: { name: string } } | null;
+}
 
 export const AdminDashboard = () => {
-  const { bookings, rooms } = useApp();
+  const [metrics, setMetrics] = useState<DashboardMetrics>({
+    totalRevenue: 0,
+    totalBookings: 0,
+    totalRooms: 0,
+    totalCustomers: 0,
+  });
+  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isLive, setIsLive] = useState(false);
 
-  const totalBookings = bookings.length;
-  const approvedBookings = bookings.filter((b) => b.status === 'approved').length;
-  const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
-  const totalRevenue = bookings
-    .filter((b) => b.status === 'approved')
-    .reduce((sum, b) => sum + b.totalPrice, 0);
+  const fetchDashboardData = async () => {
+    try {
+      // 1. Fetch Total Revenue & Bookings
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('total_price, status');
+      
+      if (bookingsError) throw bookingsError;
 
-  const availableRooms = rooms.filter((r) => r.available).length;
-  const occupiedRooms = rooms.filter((r) => !r.available).length;
+      const revenue = bookingsData
+        .filter(b => b.status === 'confirmed' || b.status === 'completed')
+        .reduce((sum, b) => sum + (b.total_price || 0), 0);
 
-  const uniqueCustomers = new Set(bookings.map((b) => b.id.substring(2, 8))).size;
+      // 2. Fetch Total Rooms
+      const { count: roomsCount, error: roomsError } = await supabase
+        .from('rooms')
+        .select('*', { count: 'exact', head: true });
+      if (roomsError) throw roomsError;
 
-  const stats = [
-    {
-      title: 'Total Bookings',
-      value: totalBookings,
-      icon: <Hotel sx={{ fontSize: 40 }} />,
-      color: '#3B82F6',
-      bgColor: '#EFF6FF',
-    },
-    {
-      title: 'Total Customers',
-      value: uniqueCustomers,
-      icon: <People sx={{ fontSize: 40 }} />,
-      color: '#10B981',
-      bgColor: '#F0FDF4',
-    },
-    {
-      title: 'Available Rooms',
-      value: availableRooms,
-      icon: <CheckCircle sx={{ fontSize: 40 }} />,
-      color: '#F59E0B',
-      bgColor: '#FFFBEB',
-    },
-    {
-      title: 'Total Revenue',
-      value: `$${totalRevenue.toFixed(0)}`,
-      icon: <AttachMoney sx={{ fontSize: 40 }} />,
-      color: '#8B5CF6',
-      bgColor: '#F5F3FF',
-    },
-  ];
+      // 3. Fetch Total Customers (Profiles)
+      const { count: customersCount, error: customersError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      if (customersError) throw customersError;
 
-  const monthlyData = [
-    { month: 'Jan', bookings: 45, revenue: 12500 },
-    { month: 'Feb', bookings: 52, revenue: 14200 },
-    { month: 'Mar', bookings: 61, revenue: 16800 },
-    { month: 'Apr', bookings: 58, revenue: 15900 },
-    { month: 'May', bookings: 67, revenue: 18400 },
-  ];
+      // 4. Fetch Recent Bookings for Table
+      const { data: recentData, error: recentError } = await supabase
+        .from('bookings')
+        .select(`
+          id, created_at, total_price, status, check_in, check_out,
+          profiles(full_name, email),
+          rooms(name, hotel:hotels(name))
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (recentError) throw recentError;
 
-  const roomTypeData = [
-    { name: 'Standard', value: rooms.filter((r) => r.type === 'Standard').length },
-    { name: 'Deluxe', value: rooms.filter((r) => r.type === 'Deluxe').length },
-    { name: 'Suite', value: rooms.filter((r) => r.type === 'Suite').length },
-    { name: 'Villa', value: rooms.filter((r) => r.type === 'Villa').length },
-  ];
+      setMetrics({
+        totalRevenue: revenue,
+        totalBookings: bookingsData.length,
+        totalRooms: roomsCount || 0,
+        totalCustomers: customersCount || 0,
+      });
 
-  const bookingStatusData = [
-    { name: 'Approved', value: approvedBookings },
-    { name: 'Pending', value: pendingBookings },
-    { name: 'Cancelled', value: bookings.filter((b) => b.status === 'cancelled').length },
-  ];
+      // @ts-ignore - Supabase join typings can be overly strict
+      setRecentBookings(recentData as RecentBooking[]);
+    } catch (error: any) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to sync dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+
+    // Set up Real-Time Subscriptions
+    const channel = supabase
+      .channel('admin-dashboard-sync')
+      // Listen to Bookings (Revenue & Recent Table)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        (payload) => {
+          setIsLive(true);
+          fetchDashboardData(); // Re-fetch to ensure calculation accuracy on changes
+          
+          if (payload.eventType === 'INSERT') {
+            toast.success('New booking received!', { description: 'Dashboard updated.' });
+          } else if (payload.eventType === 'UPDATE') {
+            toast.info('A booking was updated.', { description: 'Revenue metrics recalculated.' });
+          }
+          setTimeout(() => setIsLive(false), 2000);
+        }
+      )
+      // Listen to Rooms (Total Active Rooms)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'rooms' },
+        () => {
+          setIsLive(true);
+          fetchDashboardData();
+          setTimeout(() => setIsLive(false), 2000);
+        }
+      )
+      // Listen to Profiles (Total Customers)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'profiles' },
+        () => {
+          setIsLive(true);
+          fetchDashboardData();
+          toast.success('New user registered!', { description: 'Customer count updated.' });
+          setTimeout(() => setIsLive(false), 2000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed': return 'success';
+      case 'completed': return 'info';
+      case 'cancelled': return 'error';
+      default: return 'warning';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  const StatCard = ({ title, value, icon, color }: { title: string; value: string | number; icon: React.ReactNode; color: string }) => (
+    <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', borderRadius: 3 }}>
+      <Avatar sx={{ bgcolor: `${color}.light`, color: `${color}.main`, width: 56, height: 56, mr: 2 }}>
+        {icon}
+      </Avatar>
+      <Box>
+        <Typography variant="body2" color="text.secondary" fontWeight={600}>
+          {title}
+        </Typography>
+        <Typography variant="h5" fontWeight={700}>
+          {value}
+        </Typography>
+      </Box>
+    </Paper>
+  );
 
   return (
-    <Box>
-      <Typography variant="h4" fontWeight={700} gutterBottom>
-        Dashboard Overview
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Welcome back! Here's what's happening with your hotel.
-      </Typography>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Box>
+          <Typography variant="h4" fontWeight={700}>
+            Admin Dashboard
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Overview of your hotel operations and revenue
+          </Typography>
+        </Box>
+        
+        <Chip 
+          icon={<Sensors sx={{ fontSize: 18 }} />} 
+          label={isLive ? "Syncing..." : "Live"} 
+          color={isLive ? "primary" : "success"}
+          variant="outlined"
+          sx={{ 
+            fontWeight: 600, 
+            transition: 'all 0.3s ease',
+            bgcolor: isLive ? 'primary.50' : 'success.50' 
+          }} 
+        />
+      </Box>
 
+      {/* Metrics Row */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {stats.map((stat, index) => (
-          <Grid item xs={12} sm={6} lg={3} key={index}>
-            <Card sx={{ bgcolor: stat.bgColor, border: 'none', boxShadow: 'none' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {stat.title}
-                    </Typography>
-                    <Typography variant="h4" fontWeight={700}>
-                      {stat.value}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ color: stat.color }}>{stat.icon}</Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
-
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} lg={8}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Monthly Bookings & Revenue
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Legend />
-                <Bar yAxisId="left" dataKey="bookings" fill="#3B82F6" name="Bookings" />
-                <Bar yAxisId="right" dataKey="revenue" fill="#10B981" name="Revenue ($)" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
+        <Grid item component="div" component="div" xs={12} sm={6} md={3}>
+          <StatCard 
+            title="Total Revenue" 
+            value={formatPrice(metrics.totalRevenue)} 
+            icon={<AttachMoney fontSize="large" />} 
+            color="success" 
+          />
         </Grid>
-
-        <Grid item xs={12} lg={4}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Room Availability
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <CheckCircle sx={{ color: 'success.main', mr: 1 }} />
-                  <Typography variant="body2">Available</Typography>
-                </Box>
-                <Typography variant="h6" fontWeight={600}>
-                  {availableRooms}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Block sx={{ color: 'error.main', mr: 1 }} />
-                  <Typography variant="body2">Occupied</Typography>
-                </Box>
-                <Typography variant="h6" fontWeight={600}>
-                  {occupiedRooms}
-                </Typography>
-              </Box>
-
-              <Box sx={{ bgcolor: '#F1F5F9', p: 2, borderRadius: 2, mt: 2 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Occupancy Rate
-                </Typography>
-                <Typography variant="h4" fontWeight={700} color="primary.main">
-                  {rooms.length > 0 ? ((occupiedRooms / rooms.length) * 100).toFixed(1) : 0}%
-                </Typography>
-              </Box>
-            </Box>
-          </Paper>
+        <Grid item component="div" xs={12} sm={6} md={3}>
+          <StatCard 
+            title="Total Bookings" 
+            value={metrics.totalBookings} 
+            icon={<BookOnline fontSize="large" />} 
+            color="primary" 
+          />
+        </Grid>
+        <Grid item component="div" xs={12} sm={6} md={3}>
+          <StatCard 
+            title="Active Rooms" 
+            value={metrics.totalRooms} 
+            icon={<Hotel fontSize="large" />} 
+            color="warning" 
+          />
+        </Grid>
+        <Grid item component="div" xs={12} sm={6} md={3}>
+          <StatCard 
+            title="Total Customers" 
+            value={metrics.totalCustomers} 
+            icon={<People fontSize="large" />} 
+            color="info" 
+          />
         </Grid>
       </Grid>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Room Types Distribution
-            </Typography>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={roomTypeData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(entry) => `${entry.name}: ${entry.value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {roomTypeData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
-              Booking Status
-            </Typography>
-            <Box sx={{ mt: 3 }}>
-              {bookingStatusData.map((status, index) => (
-                <Box
-                  key={status.name}
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    mb: 2,
-                    p: 2,
-                    bgcolor: '#F8FAFC',
-                    borderRadius: 2,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    {status.name === 'Approved' && <CheckCircle sx={{ color: 'success.main', mr: 1 }} />}
-                    {status.name === 'Pending' && <Pending sx={{ color: 'warning.main', mr: 1 }} />}
-                    {status.name === 'Cancelled' && <Block sx={{ color: 'error.main', mr: 1 }} />}
-                    <Typography variant="body1">{status.name}</Typography>
-                  </Box>
-                  <Typography variant="h6" fontWeight={700}>
-                    {status.value}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
-    </Box>
+      {/* Recent Bookings Feed */}
+      <Paper sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        <Box sx={{ p: 3, borderBottom: '1px solid #E2E8F0' }}>
+          <Typography variant="h6" fontWeight={600}>
+            Recent Live Bookings
+          </Typography>
+        </Box>
+        <TableContainer>
+          <Table>
+            <TableHead sx={{ bgcolor: '#F8FAFC' }}>
+              <TableRow>
+                <TableCell>Booking ID</TableCell>
+                <TableCell>Customer</TableCell>
+                <TableCell>Hotel / Room</TableCell>
+                <TableCell>Dates</TableCell>
+                <TableCell align="right">Amount</TableCell>
+                <TableCell align="center">Status</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {recentBookings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                    No recent bookings found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                recentBookings.map((booking) => (
+                  <TableRow key={booking.id} hover>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600}>
+                        {booking.id.split('-')[0].toUpperCase()}...
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={500}>
+                        {booking.profiles?.full_name || 'Unknown User'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {booking.profiles?.email}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={500}>
+                        {booking.rooms?.hotel?.name || 'N/A'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {booking.rooms?.name || 'N/A'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - 
+                        {new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>
+                      {formatPrice(booking.total_price)}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip 
+                        label={booking.status.charAt(0).toUpperCase() + booking.status.slice(1)} 
+                        color={getStatusColor(booking.status) as any}
+                        size="small"
+                        sx={{ fontWeight: 600, minWidth: 90 }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+    </Container>
   );
 };
