@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { CustomerLayout } from "./components/layouts/CustomerLayout";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import { AuthLayout } from "./components/layouts/AuthLayout";
+import { ProtectedAdminRoute } from "./components/ProtectedAdminRoute";
 
 // Auth Pages
 import { Login } from "./pages/auth/Login";
@@ -50,7 +51,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/admin",
-    Component: AdminLayout,
+    Component: () => (
+      <ProtectedAdminRoute>
+        <AdminLayout />
+      </ProtectedAdminRoute>
+    ),
     children: [
       { index: true, Component: AdminDashboard },
       { path: "rooms", Component: RoomManagement },
