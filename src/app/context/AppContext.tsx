@@ -195,12 +195,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     const initData = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchDestinations(),
-        fetchFeaturedHotels(),
-        fetchRooms(),
-      ]);
-      setLoading(false);
+      try {
+        await Promise.all([
+          fetchDestinations(),
+          fetchFeaturedHotels(),
+          fetchRooms(),
+        ]);
+      } catch (error) {
+        console.error('Error initializing app data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     initData();
@@ -208,11 +213,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Fetch bookings when user changes
   useEffect(() => {
-    if (user) {
-      fetchBookings();
-    } else {
-      setBookings([]);
-    }
+    const loadBookings = async () => {
+      if (user) {
+        try {
+          await fetchBookings();
+        } catch (error) {
+          console.error('Error fetching bookings:', error);
+        }
+      } else {
+        setBookings([]);
+      }
+    };
+
+    loadBookings();
   }, [user]);
 
   return (
