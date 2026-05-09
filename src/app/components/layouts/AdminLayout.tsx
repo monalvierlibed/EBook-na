@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router';
+import { Outlet, Link, useLocation, useNavigate, Navigate } from 'react-router';
 import {
   Box,
   Drawer,
@@ -11,6 +11,7 @@ import {
   ListItemIcon,
   ListItemText,
   Button,
+  CircularProgress,
 } from '@mui/material';
 import {
   Dashboard,
@@ -22,6 +23,7 @@ import {
   AdminPanelSettings,
 } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
 const drawerWidth = 260;
 
@@ -37,6 +39,21 @@ export const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, setUser } = useApp();
+  const { profile, loading } = useAuth();
+
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Redirect if not admin
+  if (!profile || profile.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
 
   const handleLogout = () => {
     setUser(null);
