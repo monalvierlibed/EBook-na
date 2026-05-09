@@ -1,6 +1,5 @@
 import { Box, Typography, Grid, Paper, Card, CardContent } from '@mui/material';
 import {
-  TrendingUp,
   People,
   Hotel,
   AttachMoney,
@@ -17,16 +16,16 @@ export const AdminDashboard = () => {
   const { bookings, rooms } = useApp();
 
   const totalBookings = bookings.length;
-  const approvedBookings = bookings.filter((b) => b.status === 'approved').length;
+  const confirmedBookings = bookings.filter((b) => b.status === 'confirmed').length;
   const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
   const totalRevenue = bookings
-    .filter((b) => b.status === 'approved')
-    .reduce((sum, b) => sum + b.totalPrice, 0);
+    .filter((b) => b.status === 'confirmed')
+    .reduce((sum, b) => sum + Number(b.total_price), 0);
 
   const availableRooms = rooms.filter((r) => r.available).length;
   const occupiedRooms = rooms.filter((r) => !r.available).length;
 
-  const uniqueCustomers = new Set(bookings.map((b) => b.id.substring(2, 8))).size;
+  const uniqueCustomers = new Set(bookings.map((b) => b.user_id)).size;
 
   const stats = [
     {
@@ -52,7 +51,7 @@ export const AdminDashboard = () => {
     },
     {
       title: 'Total Revenue',
-      value: `$${totalRevenue.toFixed(0)}`,
+      value: `₱${totalRevenue.toFixed(0)}`,
       icon: <AttachMoney sx={{ fontSize: 40 }} />,
       color: '#8B5CF6',
       bgColor: '#F5F3FF',
@@ -68,14 +67,14 @@ export const AdminDashboard = () => {
   ];
 
   const roomTypeData = [
-    { name: 'Standard', value: rooms.filter((r) => r.type === 'Standard').length },
-    { name: 'Deluxe', value: rooms.filter((r) => r.type === 'Deluxe').length },
-    { name: 'Suite', value: rooms.filter((r) => r.type === 'Suite').length },
-    { name: 'Villa', value: rooms.filter((r) => r.type === 'Villa').length },
+    { name: 'Standard', value: rooms.filter((r) => r.room_type === 'Standard').length },
+    { name: 'Deluxe', value: rooms.filter((r) => r.room_type === 'Deluxe').length },
+    { name: 'Suite', value: rooms.filter((r) => r.room_type === 'Suite').length },
+    { name: 'Villa', value: rooms.filter((r) => r.room_type === 'Villa').length },
   ];
 
   const bookingStatusData = [
-    { name: 'Approved', value: approvedBookings },
+    { name: 'Confirmed', value: confirmedBookings },
     { name: 'Pending', value: pendingBookings },
     { name: 'Cancelled', value: bookings.filter((b) => b.status === 'cancelled').length },
   ];
@@ -126,7 +125,7 @@ export const AdminDashboard = () => {
                 <Tooltip />
                 <Legend />
                 <Bar yAxisId="left" dataKey="bookings" fill="#3B82F6" name="Bookings" />
-                <Bar yAxisId="right" dataKey="revenue" fill="#10B981" name="Revenue ($)" />
+                <Bar yAxisId="right" dataKey="revenue" fill="#10B981" name="Revenue (PHP)" />
               </BarChart>
             </ResponsiveContainer>
           </Paper>
@@ -219,7 +218,7 @@ export const AdminDashboard = () => {
                   }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    {status.name === 'Approved' && <CheckCircle sx={{ color: 'success.main', mr: 1 }} />}
+                    {status.name === 'Confirmed' && <CheckCircle sx={{ color: 'success.main', mr: 1 }} />}
                     {status.name === 'Pending' && <Pending sx={{ color: 'warning.main', mr: 1 }} />}
                     {status.name === 'Cancelled' && <Block sx={{ color: 'error.main', mr: 1 }} />}
                     <Typography variant="body1">{status.name}</Typography>

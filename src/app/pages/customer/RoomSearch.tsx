@@ -19,6 +19,7 @@ import {
   Slider,
   Paper,
   CircularProgress,
+  Divider,
 } from '@mui/material';
 import { Star, LocationOn, CheckCircle, Search } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
@@ -34,9 +35,12 @@ export const RoomSearch = () => {
     destination: searchParams.get('destination') || 'all',
     priceRange: [0, 20000],
     minRating: 0,
+    roomType: 'all',
+    amenities: [] as string[],
   });
 
   const [hotels, setHotels] = useState<HotelWithRooms[]>([]);
+  const [allHotels, setAllHotels] = useState<HotelWithRooms[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchHotels = async () => {
@@ -45,6 +49,7 @@ export const RoomSearch = () => {
       filters.search,
       filters.destination !== 'all' ? filters.destination : undefined
     );
+    setAllHotels(results);
     
     // Apply client-side filters
     let filtered = results;
@@ -61,6 +66,21 @@ export const RoomSearch = () => {
                 room.price_per_night <= filters.priceRange[1]
       );
     });
+
+    if (filters.roomType !== 'all') {
+      filtered = filtered.filter((hotel) =>
+        hotel.rooms?.some((room) => room.room_type === filters.roomType)
+      );
+    }
+
+    if (filters.amenities.length > 0) {
+      filtered = filtered.filter((hotel) => {
+        const hotelAmenities = hotel.amenities || [];
+        const roomAmenities = hotel.rooms?.flatMap((room) => room.amenities || []) || [];
+        const combinedAmenities = new Set([...hotelAmenities, ...roomAmenities]);
+        return filters.amenities.every((amenity) => combinedAmenities.has(amenity));
+      });
+    }
     
     setHotels(filtered);
     setLoading(false);
@@ -87,18 +107,39 @@ export const RoomSearch = () => {
     fetchHotels();
   };
 
+  const amenityOptions = Array.from(
+    new Set(
+      allHotels
+        .flatMap((hotel) => [
+          ...(hotel.amenities || []),
+          ...(hotel.rooms?.flatMap((room) => room.amenities || []) || []),
+        ])
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" fontWeight={700} gutterBottom>
-        Explore Philippine Hotels
+        All Hotels
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Find the perfect accommodation across the beautiful islands of the Philippines
+        Compare rooms, prices, ratings, and amenities.
       </Typography>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, position: 'sticky', top: 80 }}>
+          <Paper
+            sx={{
+              p: 2.5,
+              position: 'sticky',
+              top: 80,
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: '#E5E7EB',
+              boxShadow: '0 8px 18px rgba(17, 24, 39, 0.06)',
+            }}
+          >
             <Typography variant="h6" fontWeight={600} gutterBottom>
               Filters
             </Typography>
@@ -148,6 +189,40 @@ export const RoomSearch = () => {
             </Box>
 
             <FormControl fullWidth margin="normal" size="small">
+              <InputLabel>Room Type</InputLabel>
+              <Select
+                value={filters.roomType}
+                label="Room Type"
+                onChange={(e) => setFilters({ ...filters, roomType: e.target.value })}
+              >
+                <MenuItem value="all">All Room Types</MenuItem>
+                <MenuItem value="Standard">Standard</MenuItem>
+                <MenuItem value="Deluxe">Deluxe</MenuItem>
+                <MenuItem value="Suite">Suite</MenuItem>
+                <MenuItem value="Cottage">Cottage</MenuItem>
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth margin="normal" size="small">
+              <InputLabel>Amenities</InputLabel>
+              <Select
+                multiple
+                value={filters.amenities}
+                label="Amenities"
+                onChange={(e) => setFilters({ ...filters, amenities: e.target.value as string[] })}
+                renderValue={(selected) =>
+                  selected.length > 0 ? `${selected.length} selected` : 'Select amenities'
+                }
+              >
+                {amenityOptions.map((amenity) => (
+                  <MenuItem key={amenity} value={amenity}>
+                    {amenity}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth margin="normal" size="small">
               <InputLabel>Min Rating</InputLabel>
               <Select
                 value={filters.minRating}
@@ -171,6 +246,8 @@ export const RoomSearch = () => {
                   destination: 'all',
                   priceRange: [0, 20000],
                   minRating: 0,
+                  roomType: 'all',
+                  amenities: [],
                 });
               }}
             >
@@ -186,12 +263,27 @@ export const RoomSearch = () => {
             </Typography>
           </Box>
 
+          {(filters.roomType !== 'all' || filters.amenities.length > 0 || filters.minRating > 0) && (
+            <Paper sx={{ p: 2, mb: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Active filters
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {filters.roomType !== 'all' && <Chip size="small" label={`Room: ${filters.roomType}`} />}
+                {filters.minRating > 0 && <Chip size="small" label={`Rating: ${filters.minRating}+`} />}
+                {filters.amenities.map((amenity) => (
+                  <Chip key={amenity} size="small" label={amenity} />
+                ))}
+              </Box>
+            </Paper>
+          )}
+
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress />
             </Box>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={2.5}>
               {hotels.map((hotel) => {
                 const lowestPrice = getLowestPrice(hotel);
                 const hasAvailableRooms = hotel.rooms?.some(r => r.available) ?? false;
@@ -203,17 +295,23 @@ export const RoomSearch = () => {
                         height: '100%', 
                         display: 'flex', 
                         flexDirection: 'column', 
-                        borderRadius: 3,
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: '#E5E7EB',
                         cursor: 'pointer',
-                        transition: 'box-shadow 0.2s',
-                        '&:hover': { boxShadow: '0 8px 30px rgba(0,0,0,0.12)' },
+                        boxShadow: '0 4px 14px rgba(17, 24, 39, 0.06)',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 10px 20px rgba(17, 24, 39, 0.12)',
+                        },
                       }}
                       onClick={() => navigate(`/hotel/${hotel.id}`)}
                     >
                       <Box sx={{ position: 'relative' }}>
                         <CardMedia
                           component="img"
-                          height="180"
+                          height="156"
                           image={hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'}
                           alt={hotel.name}
                         />
@@ -249,9 +347,9 @@ export const RoomSearch = () => {
                         )}
                       </Box>
 
-                      <CardContent sx={{ flexGrow: 1 }}>
+                      <CardContent sx={{ flexGrow: 1, p: 1.75 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-                          <Typography variant="h6" fontWeight={600} sx={{ flex: 1, lineHeight: 1.3 }}>
+                          <Typography variant="subtitle1" fontWeight={600} sx={{ flex: 1, lineHeight: 1.3 }}>
                             {hotel.name}
                           </Typography>
                           <Chip
@@ -274,16 +372,19 @@ export const RoomSearch = () => {
                         </Box>
 
                         {lowestPrice && (
-                          <Typography variant="h5" color="primary.main" fontWeight={700}>
-                            {formatPrice(lowestPrice)}
-                            <Typography component="span" variant="body2" color="text.secondary" fontWeight={400}>
-                              /night
+                          <>
+                            <Divider sx={{ mb: 1.5 }} />
+                            <Typography variant="h6" color="primary.main" fontWeight={700}>
+                              {formatPrice(lowestPrice)}
+                              <Typography component="span" variant="body2" color="text.secondary" fontWeight={400}>
+                                /night
+                              </Typography>
                             </Typography>
-                          </Typography>
+                          </>
                         )}
                       </CardContent>
 
-                      <CardActions sx={{ p: 2, pt: 0 }}>
+                      <CardActions sx={{ p: 1.75, pt: 0 }}>
                         <Button
                           fullWidth
                           variant="contained"
@@ -316,6 +417,8 @@ export const RoomSearch = () => {
                     destination: 'all',
                     priceRange: [0, 20000],
                     minRating: 0,
+                    roomType: 'all',
+                    amenities: [],
                   });
                 }}
               >

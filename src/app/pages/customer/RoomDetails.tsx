@@ -131,41 +131,29 @@ export const RoomDetails = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Hero Image Gallery */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={8}>
-          <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
+      <Chip
+        label={hotel.rooms?.[0]?.room_type || 'Room type'}
+        size="small"
+        sx={{ mb: 1.5, bgcolor: '#FFF2CC', color: '#7A5C00', fontWeight: 600 }}
+      />
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12}>
+          <Card sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #E5E7EB', boxShadow: 'none' }}>
             <Box
               component="img"
               src={hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'}
               alt={hotel.name}
-              sx={{ width: '100%', height: 400, objectFit: 'cover' }}
+              sx={{ width: '100%', height: { xs: 240, md: 300 }, objectFit: 'cover' }}
             />
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Grid container spacing={2}>
-            {hotel.images?.slice(1, 3).map((img, idx) => (
-              <Grid item xs={6} md={12} key={idx}>
-                <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
-                  <Box
-                    component="img"
-                    src={img}
-                    alt={`${hotel.name} ${idx + 2}`}
-                    sx={{ width: '100%', height: { xs: 100, md: 194 }, objectFit: 'cover' }}
-                  />
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Grid>
       </Grid>
 
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={8}>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={9}>
           {/* Hotel Info */}
-          <Box sx={{ mb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5, flexWrap: 'wrap', gap: 2 }}>
               <Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   {hotel.featured && (
@@ -181,7 +169,7 @@ export const RoomDetails = () => {
                     sx={{ bgcolor: '#0066B3', color: 'white' }}
                   />
                 </Box>
-                <Typography variant="h3" fontWeight={700} gutterBottom>
+                <Typography variant="h4" fontWeight={700} gutterBottom>
                   {hotel.name}
                 </Typography>
                 <Typography variant="body1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
@@ -196,8 +184,29 @@ export const RoomDetails = () => {
             </Typography>
           </Box>
 
+          <Grid container spacing={1.5} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={4}>
+              <Paper sx={{ p: 1.5, border: '1px solid #E5E7EB', boxShadow: 'none' }}>
+                <Typography variant="caption" color="text.secondary">Room size</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>40 m²</Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Paper sx={{ p: 1.5, border: '1px solid #E5E7EB', boxShadow: 'none' }}>
+                <Typography variant="caption" color="text.secondary">Capacity</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>{Math.max(...(hotel.rooms?.map(r => r.capacity) || [2]))} Guests</Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Paper sx={{ p: 1.5, border: '1px solid #E5E7EB', boxShadow: 'none' }}>
+                <Typography variant="caption" color="text.secondary">Price</Typography>
+                <Typography variant="subtitle1" fontWeight={700}>{lowestPrice ? formatPrice(lowestPrice) : 'N/A'}</Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+
           {/* Amenities */}
-          <Paper sx={{ p: 3, mb: 4 }}>
+          <Paper sx={{ p: 2, mb: 3, border: '1px solid #E5E7EB', boxShadow: 'none' }}>
             <Typography variant="h6" fontWeight={600} gutterBottom>
               Hotel Amenities
             </Typography>
@@ -216,17 +225,17 @@ export const RoomDetails = () => {
           </Paper>
 
           {/* Available Rooms */}
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h5" fontWeight={600} gutterBottom>
-              Available Rooms
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" fontWeight={700} gutterBottom>
+              Select your room
             </Typography>
-            <Grid container spacing={3}>
+            <Grid container spacing={2}>
               {hotel.rooms?.map((room) => (
                 <Grid item xs={12} key={room.id}>
-                  <Card sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, borderRadius: 3 }}>
+                  <Card sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, borderRadius: 2, border: '1px solid #D1D5DB', boxShadow: 'none' }}>
                     <CardMedia
                       component="img"
-                      sx={{ width: { xs: '100%', sm: 200 }, height: { xs: 150, sm: 'auto' } }}
+                      sx={{ width: { xs: '100%', sm: 180 }, height: { xs: 140, sm: 170 } }}
                       image={room.images?.[0] || hotel.images?.[0] || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800'}
                       alt={room.name}
                     />
@@ -234,7 +243,7 @@ export const RoomDetails = () => {
                       <CardContent sx={{ flexGrow: 1 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: 1 }}>
                           <Box>
-                            <Typography variant="h6" fontWeight={600}>
+                            <Typography variant="subtitle1" fontWeight={700}>
                               {room.name}
                             </Typography>
                             <Chip label={room.room_type} size="small" variant="outlined" sx={{ mt: 0.5 }} />
@@ -246,7 +255,7 @@ export const RoomDetails = () => {
                           )}
                         </Box>
                         
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
                           {room.description}
                         </Typography>
                         
@@ -265,7 +274,7 @@ export const RoomDetails = () => {
                       </CardContent>
                       
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, pt: 0 }}>
-                        <Typography variant="h5" color="primary.main" fontWeight={700}>
+                        <Typography variant="h6" color="primary.main" fontWeight={700}>
                           {formatPrice(room.price_per_night)}
                           <Typography component="span" variant="body2" color="text.secondary" fontWeight={400}>
                             /night
@@ -287,7 +296,7 @@ export const RoomDetails = () => {
           </Box>
 
           {/* Property Info */}
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: 2, border: '1px solid #E5E7EB', boxShadow: 'none' }}>
             <Typography variant="h6" fontWeight={600} gutterBottom>
               Property Policies
             </Typography>
@@ -313,8 +322,8 @@ export const RoomDetails = () => {
         </Grid>
 
         {/* Sidebar */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, position: 'sticky', top: 80 }}>
+        <Grid item xs={12} md={3}>
+          <Paper sx={{ p: 2, position: 'sticky', top: 80, border: '1px solid #E5E7EB', boxShadow: 'none' }}>
             {lowestPrice && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="body2" color="text.secondary">
