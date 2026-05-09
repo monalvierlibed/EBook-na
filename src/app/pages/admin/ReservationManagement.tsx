@@ -24,13 +24,15 @@ import {
 } from '@mui/material';
 import { CheckCircle, Cancel, Pending, Visibility } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { BookingWithDetails } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
 export const ReservationManagement = () => {
   const { bookings, updateBookingStatus } = useApp();
-  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
   const [detailsDialog, setDetailsDialog] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const filteredBookings =
     activeTab === 0
@@ -38,30 +40,44 @@ export const ReservationManagement = () => {
       : activeTab === 1
       ? bookings.filter((b) => b.status === 'pending')
       : activeTab === 2
-      ? bookings.filter((b) => b.status === 'approved')
+      ? bookings.filter((b) => b.status === 'confirmed')
       : bookings.filter((b) => b.status === 'cancelled');
 
-  const handleViewDetails = (booking: any) => {
+  const handleViewDetails = (booking: BookingWithDetails) => {
     setSelectedBooking(booking);
     setDetailsDialog(true);
   };
 
-  const handleApprove = (bookingId: string) => {
-    updateBookingStatus(bookingId, 'approved');
+  const handleApprove = async (bookingId: string) => {
+    setUpdatingStatus(true);
+    const { error } = await updateBookingStatus(bookingId, 'confirmed');
+    if (error) {
+      toast.error(error.message);
+      setUpdatingStatus(false);
+      return;
+    }
     toast.success('Reservation approved successfully');
     setDetailsDialog(false);
+    setUpdatingStatus(false);
   };
 
-  const handleCancel = (bookingId: string) => {
-    updateBookingStatus(bookingId, 'cancelled');
+  const handleCancel = async (bookingId: string) => {
+    setUpdatingStatus(true);
+    const { error } = await updateBookingStatus(bookingId, 'cancelled');
+    if (error) {
+      toast.error(error.message);
+      setUpdatingStatus(false);
+      return;
+    }
     toast.success('Reservation cancelled');
     setDetailsDialog(false);
+    setUpdatingStatus(false);
   };
 
   const getStatusChip = (status: string) => {
     switch (status) {
-      case 'approved':
-        return <Chip icon={<CheckCircle />} label="Approved" color="success" size="small" />;
+      case 'confirmed':
+        return <Chip icon={<CheckCircle />} label="Confirmed" color="success" size="small" />;
       case 'pending':
         return <Chip icon={<Pending />} label="Pending" color="warning" size="small" />;
       case 'cancelled':
@@ -84,7 +100,7 @@ export const ReservationManagement = () => {
     },
     {
       label: 'Approved',
-      value: bookings.filter((b) => b.status === 'approved').length,
+      value: bookings.filter((b) => b.status === 'confirmed').length,
       color: '#10B981',
     },
     {
@@ -124,7 +140,7 @@ export const ReservationManagement = () => {
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
           <Tab label="All Reservations" />
           <Tab label="Pending" />
-          <Tab label="Approved" />
+          <Tab label="Confirmed" />
           <Tab label="Cancelled" />
         </Tabs>
       </Paper>
@@ -180,21 +196,21 @@ export const ReservationManagement = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">{booking.roomName}</Typography>
+                    <Typography variant="body2">{booking.room?.name || 'N/A'}</Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {booking.hotelName}
+                      {booking.room?.hotel?.name || 'N/A'}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {new Date(booking.checkIn).toLocaleDateString()}
+                      {new Date(booking.check_in).toLocaleDateString()}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {new Date(booking.checkOut).toLocaleDateString()}
+                      {new Date(booking.check_out).toLocaleDateString()}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -202,7 +218,7 @@ export const ReservationManagement = () => {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight={600}>
-                      ${booking.totalPrice.toFixed(2)}
+                      ₱{booking.total_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Typography>
                   </TableCell>
                   <TableCell>{getStatusChip(booking.status)}</TableCell>
@@ -244,10 +260,10 @@ export const ReservationManagement = () => {
                     Room Information
                   </Typography>
                   <Typography variant="body1" fontWeight={600}>
-                    {selectedBooking.roomName}
+                    {selectedBooking.room?.name || 'N/A'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {selectedBooking.hotelName}
+                    {selectedBooking.room?.hotel?.name || 'N/A'}
                   </Typography>
                 </Grid>
 
@@ -256,7 +272,7 @@ export const ReservationManagement = () => {
                     Check-in
                   </Typography>
                   <Typography variant="body1">
-                    {new Date(selectedBooking.checkIn).toLocaleDateString()}
+                    {new Date(selectedBooking.check_in).toLocaleDateString()}
                   </Typography>
                 </Grid>
 
@@ -265,7 +281,7 @@ export const ReservationManagement = () => {
                     Check-out
                   </Typography>
                   <Typography variant="body1">
-                    {new Date(selectedBooking.checkOut).toLocaleDateString()}
+                    {new Date(selectedBooking.check_out).toLocaleDateString()}
                   </Typography>
                 </Grid>
 
@@ -289,39 +305,41 @@ export const ReservationManagement = () => {
                       Total Amount
                     </Typography>
                     <Typography variant="h5" fontWeight={700} color="primary.main">
-                      ${selectedBooking.totalPrice.toFixed(2)}
+                      ₱{selectedBooking.total_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Typography>
                   </Paper>
                 </Grid>
 
                 <Grid item xs={12}>
                   <Typography variant="caption" color="text.secondary">
-                    Booked on: {new Date(selectedBooking.createdAt).toLocaleString()}
+                    Booked on: {new Date(selectedBooking.created_at).toLocaleString()}
                   </Typography>
                 </Grid>
               </Grid>
             </DialogContent>
             <DialogActions sx={{ p: 3, pt: 2 }}>
-              <Button onClick={() => setDetailsDialog(false)}>Close</Button>
+              <Button onClick={() => setDetailsDialog(false)} disabled={updatingStatus}>Close</Button>
               {selectedBooking.status === 'pending' && (
                 <>
                   <Button
                     variant="outlined"
                     color="error"
                     onClick={() => handleCancel(selectedBooking.id)}
+                    disabled={updatingStatus}
                   >
                     Reject
                   </Button>
-                  <Button variant="contained" onClick={() => handleApprove(selectedBooking.id)}>
+                  <Button variant="contained" onClick={() => handleApprove(selectedBooking.id)} disabled={updatingStatus}>
                     Approve
                   </Button>
                 </>
               )}
-              {selectedBooking.status === 'approved' && (
+              {selectedBooking.status === 'confirmed' && (
                 <Button
                   variant="outlined"
                   color="error"
                   onClick={() => handleCancel(selectedBooking.id)}
+                  disabled={updatingStatus}
                 >
                   Cancel Reservation
                 </Button>

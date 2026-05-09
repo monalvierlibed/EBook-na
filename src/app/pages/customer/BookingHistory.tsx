@@ -18,8 +18,9 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Divider,
 } from '@mui/material';
-import { CalendarMonth, Person, Download, Cancel as CancelIcon, CheckCircle, Pending, Schedule } from '@mui/icons-material';
+import { Download, Cancel as CancelIcon, CheckCircle, Schedule, LocationOn } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
@@ -49,10 +50,15 @@ export const BookingHistory = () => {
     }).format(price);
   };
 
-  const filteredBookings =
-    activeTab === 0
-      ? bookings.filter((b) => b.status === 'pending' || b.status === 'confirmed')
-      : bookings.filter((b) => b.status === 'cancelled' || b.status === 'completed');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const filteredBookings = bookings.filter((booking) => {
+    if (activeTab === 0) return true;
+    const checkInDate = new Date(booking.check_in);
+    if (activeTab === 1) return checkInDate >= today && (booking.status === 'pending' || booking.status === 'confirmed');
+    return checkInDate < today || booking.status === 'completed' || booking.status === 'cancelled';
+  });
 
   const handleCancelBooking = async () => {
     setCancelling(true);
@@ -71,13 +77,13 @@ export const BookingHistory = () => {
   const getStatusChip = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return <Chip icon={<CheckCircle />} label="Confirmed" color="success" size="small" />;
+        return <Chip icon={<CheckCircle />} label="Confirmed" size="small" sx={{ bgcolor: '#E9F9EC', color: '#2E7D32' }} />;
       case 'pending':
-        return <Chip icon={<Schedule />} label="Pending" color="warning" size="small" />;
+        return <Chip icon={<Schedule />} label="Pending" size="small" sx={{ bgcolor: '#FFF7E6', color: '#B26A00' }} />;
       case 'cancelled':
-        return <Chip icon={<CancelIcon />} label="Cancelled" color="error" size="small" />;
+        return <Chip icon={<CancelIcon />} label="Cancelled" size="small" sx={{ bgcolor: '#FDEBEC', color: '#B3261E' }} />;
       case 'completed':
-        return <Chip icon={<CheckCircle />} label="Completed" color="info" size="small" />;
+        return <Chip icon={<CheckCircle />} label="Completed" size="small" sx={{ bgcolor: '#EEF5FF', color: '#1A73E8' }} />;
       default:
         return <Chip label={status} size="small" />;
     }
@@ -109,14 +115,15 @@ export const BookingHistory = () => {
       <Typography variant="h4" fontWeight={700} gutterBottom>
         My Bookings
       </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
         View and manage your hotel reservations
       </Typography>
 
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-          <Tab label={`Active (${bookings.filter(b => b.status === 'pending' || b.status === 'confirmed').length})`} />
-          <Tab label={`Past (${bookings.filter(b => b.status === 'cancelled' || b.status === 'completed').length})`} />
+          <Tab label={`All Bookings`} />
+          <Tab label={`Upcoming Bookings`} />
+          <Tab label={`Past Bookings`} />
         </Tabs>
       </Box>
 
@@ -142,95 +149,70 @@ export const BookingHistory = () => {
             
             return (
               <Grid item xs={12} key={booking.id}>
-                <Card sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' } }}>
+                <Card sx={{ borderRadius: 2, border: '1px solid #E5E7EB', boxShadow: 'none' }}>
+                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' } }}>
                   <CardMedia
                     component="img"
-                    sx={{ width: { xs: '100%', sm: 200 }, height: { xs: 200, sm: 'auto' } }}
+                    sx={{ width: { xs: '100%', sm: 150 }, height: { xs: 160, sm: 160 }, objectFit: 'cover', bgcolor: '#EEE9FF' }}
                     image={room?.images?.[0] || hotel?.images?.[0] || 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800'}
                     alt={room?.name || 'Hotel Room'}
                   />
 
-                  <CardContent sx={{ flex: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                  <CardContent sx={{ flex: 1, p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                       <Box>
-                        <Typography variant="h6" fontWeight={600}>
-                          {room?.name || 'Room'}
+                        <Typography variant="h6" fontWeight={700}>
+                          {hotel?.name || 'Hotel Name'}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {hotel?.name || 'Hotel'}
+                        <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <LocationOn sx={{ fontSize: 14 }} /> {hotel?.city || 'Location'}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {hotel?.city}, {hotel?.province}
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          {room?.name || 'Room name'}
                         </Typography>
                       </Box>
                       {getStatusChip(booking.status)}
                     </Box>
 
-                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid container spacing={1} sx={{ mb: 1 }}>
                       <Grid item xs={12} sm={4}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <CalendarMonth sx={{ mr: 1, fontSize: 20, color: 'text.secondary' }} />
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">
-                              Check-in
-                            </Typography>
-                            <Typography variant="body2" fontWeight={600}>
-                              {new Date(booking.check_in).toLocaleDateString('en-PH', { 
-                                weekday: 'short', 
-                                month: 'short', 
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </Typography>
-                          </Box>
-                        </Box>
+                        <Typography variant="caption" color="text.secondary">Check-in</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {new Date(booking.check_in).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </Typography>
                       </Grid>
 
                       <Grid item xs={12} sm={4}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <CalendarMonth sx={{ mr: 1, fontSize: 20, color: 'text.secondary' }} />
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">
-                              Check-out
-                            </Typography>
-                            <Typography variant="body2" fontWeight={600}>
-                              {new Date(booking.check_out).toLocaleDateString('en-PH', { 
-                                weekday: 'short', 
-                                month: 'short', 
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </Typography>
-                          </Box>
-                        </Box>
+                        <Typography variant="caption" color="text.secondary">Check-out</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {new Date(booking.check_out).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </Typography>
                       </Grid>
 
                       <Grid item xs={12} sm={4}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Person sx={{ mr: 1, fontSize: 20, color: 'text.secondary' }} />
-                          <Box>
-                            <Typography variant="caption" color="text.secondary">
-                              Guests
-                            </Typography>
-                            <Typography variant="body2" fontWeight={600}>
-                              {booking.guests} {booking.guests === 1 ? 'Guest' : 'Guests'}
-                            </Typography>
-                          </Box>
-                        </Box>
+                        <Typography variant="caption" color="text.secondary">Guest</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {booking.guests} {booking.guests === 1 ? 'Guest' : 'Guests'}
+                        </Typography>
                       </Grid>
                     </Grid>
 
+                    <Divider sx={{ my: 1 }} />
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
                       <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Booked on {new Date(booking.created_at).toLocaleDateString('en-PH')}
-                        </Typography>
-                        <Typography variant="h6" color="primary.main" fontWeight={700}>
+                        <Typography variant="h6" color="primary.main" fontWeight={800}>
                           {formatPrice(booking.total_price)}
                         </Typography>
                       </Box>
 
                       <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => navigate(`/hotel/${room?.hotel_id || ''}`)}
+                        >
+                          Details
+                        </Button>
                         <Button
                           variant="outlined"
                           size="small"
@@ -245,7 +227,6 @@ export const BookingHistory = () => {
                             variant="outlined"
                             color="error"
                             size="small"
-                            startIcon={<CancelIcon />}
                             onClick={() => setCancelDialog({ open: true, bookingId: booking.id })}
                           >
                             Cancel
@@ -254,6 +235,7 @@ export const BookingHistory = () => {
                       </Box>
                     </Box>
                   </CardContent>
+                  </Box>
                 </Card>
               </Grid>
             );

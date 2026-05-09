@@ -22,8 +22,8 @@ export const Reports = () => {
   const { bookings, rooms } = useApp();
 
   const totalRevenue = bookings
-    .filter((b) => b.status === 'approved')
-    .reduce((sum, b) => sum + b.totalPrice, 0);
+    .filter((b) => b.status === 'confirmed')
+    .reduce((sum, b) => sum + Number(b.total_price), 0);
 
   const monthlyRevenue = [
     { month: 'Jan', revenue: 12500, bookings: 45 },
@@ -34,10 +34,10 @@ export const Reports = () => {
   ];
 
   const performanceData = [
-    { metric: 'Average Booking Value', value: `$${(totalRevenue / (bookings.length || 1)).toFixed(2)}` },
-    { metric: 'Occupancy Rate', value: `${((rooms.filter(r => !r.available).length / rooms.length) * 100).toFixed(1)}%` },
+    { metric: 'Average Booking Value', value: `₱${(totalRevenue / (bookings.length || 1)).toFixed(2)}` },
+    { metric: 'Occupancy Rate', value: `${((rooms.filter(r => !r.available).length / (rooms.length || 1)) * 100).toFixed(1)}%` },
     { metric: 'Total Bookings', value: bookings.length },
-    { metric: 'Approved Bookings', value: bookings.filter(b => b.status === 'approved').length },
+    { metric: 'Confirmed Bookings', value: bookings.filter(b => b.status === 'confirmed').length },
     { metric: 'Pending Bookings', value: bookings.filter(b => b.status === 'pending').length },
     { metric: 'Cancellation Rate', value: `${((bookings.filter(b => b.status === 'cancelled').length / (bookings.length || 1)) * 100).toFixed(1)}%` },
   ];
@@ -72,7 +72,7 @@ export const Reports = () => {
                     Total Revenue
                   </Typography>
                   <Typography variant="h4" fontWeight={700}>
-                    ${totalRevenue.toFixed(0)}
+                    ₱{totalRevenue.toFixed(0)}
                   </Typography>
                 </Box>
                 <AttachMoney sx={{ fontSize: 40, color: '#3B82F6' }} />
@@ -126,7 +126,7 @@ export const Reports = () => {
                     Avg. Booking
                   </Typography>
                   <Typography variant="h4" fontWeight={700}>
-                    ${(totalRevenue / (bookings.length || 1)).toFixed(0)}
+                    ₱{(totalRevenue / (bookings.length || 1)).toFixed(0)}
                   </Typography>
                 </Box>
                 <People sx={{ fontSize: 40, color: '#8B5CF6' }} />
@@ -154,7 +154,7 @@ export const Reports = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Area type="monotone" dataKey="revenue" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} name="Revenue ($)" />
+                <Area type="monotone" dataKey="revenue" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} name="Revenue (PHP)" />
               </AreaChart>
             </ResponsiveContainer>
           </Paper>
