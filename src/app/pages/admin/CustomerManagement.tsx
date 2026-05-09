@@ -169,8 +169,8 @@ export const CustomerManagement = () => {
               </Typography>
             </DialogTitle>
             <DialogContent>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12}>
+              <Grid2 container spacing={2} sx={{ mt: 1 }}>
+                <Grid2 xs={12}>
                   <Paper sx={{ p: 2, bgcolor: '#F8FAFC' }}>
                     <Typography variant="caption" color="text.secondary">
                       Customer ID
@@ -179,51 +179,51 @@ export const CustomerManagement = () => {
                       {selectedCustomer.id}
                     </Typography>
                   </Paper>
-                </Grid>
+                </Grid2>
 
-                <Grid item xs={12}>
+                <Grid2 xs={12}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Name
                   </Typography>
                   <Typography variant="body1">{selectedCustomer.name}</Typography>
-                </Grid>
+                </Grid2>
 
-                <Grid item xs={12}>
+                <Grid2 xs={12}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Email
                   </Typography>
                   <Typography variant="body1">{selectedCustomer.email}</Typography>
-                </Grid>
+                </Grid2>
 
-                <Grid item xs={12}>
+                <Grid2 xs={12}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Phone
                   </Typography>
                   <Typography variant="body1">{selectedCustomer.phone}</Typography>
-                </Grid>
+                </Grid2>
 
-                <Grid item xs={6}>
+                <Grid2 xs={6}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Total Bookings
                   </Typography>
                   <Typography variant="h5" fontWeight={700} color="primary.main">
                     {selectedCustomer.totalBookings}
                   </Typography>
-                </Grid>
+                </Grid2>
 
-                <Grid item xs={6}>
+                <Grid2 xs={6}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Status
                   </Typography>
                   <Chip label={selectedCustomer.status} color="success" />
-                </Grid>
+                </Grid2>
 
-                <Grid item xs={12}>
+                <Grid2 xs={12}>
                   <Typography variant="caption" color="text.secondary">
                     Member since: {new Date(selectedCustomer.joinedDate).toLocaleDateString()}
                   </Typography>
-                </Grid>
-              </Grid>
+                </Grid2>
+              </Grid2>
             </DialogContent>
             <DialogActions sx={{ p: 3, pt: 2 }}>
               <Button onClick={() => setDetailsDialog(false)}>Close</Button>
@@ -237,3 +237,5 @@ export const CustomerManagement = () => {
     </Box>
   );
 };
+
+

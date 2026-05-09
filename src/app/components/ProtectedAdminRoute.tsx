@@ -1,25 +1,30 @@
-import { Navigate } from 'react-router';
+import { Navigate, Outlet } from 'react-router';
 import { useAuth } from '../context/AuthContext';
-import { CircularProgress, Box } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 
-interface ProtectedAdminRouteProps {
-  children: React.ReactNode;
-}
+export const ProtectedAdminRoute = () => {
+  const { user, profile, loading } = useAuth();
 
-export const ProtectedAdminRoute = ({ children }: ProtectedAdminRouteProps) => {
-  const { profile, loading } = useAuth();
-
+  // Wait for the auth state to resolve before redirecting
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  if (!profile || profile.role !== 'admin') {
-    return <Navigate to="/" replace />;
+  // Not logged in? Send to login.
+  if (!user) {
+    return <Navigate to="/auth/login" replace />;
   }
 
-  return <>{children}</>;
+  // Logged in, but not an admin? Send to the homepage.
+  // Note: Adjust 'admin' to match exactly how it's stored in your Supabase profiles table.
+  if (profile?.role !== 'admin') {
+    return <Navigate to="/" replace />; 
+  }
+
+  // User is an authorized admin, render the child routes
+  return <Outlet />;
 };

@@ -19,10 +19,18 @@ import {
   Slider,
   Paper,
   CircularProgress,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+  Rating,
+  Divider,
 } from '@mui/material';
 import { Star, LocationOn, CheckCircle, Search } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { HotelWithRooms } from '../../../lib/supabase';
+
+const AVAILABLE_ROOM_TYPES = ['Standard', 'Deluxe', 'Suite', 'Cottage'];
+const AVAILABLE_AMENITIES = ['WiFi', 'Pool', 'Gym', 'Spa', 'Air Conditioning', 'Restaurant', 'Parking'];
 
 export const RoomSearch = () => {
   const navigate = useNavigate();
@@ -34,6 +42,8 @@ export const RoomSearch = () => {
     destination: searchParams.get('destination') || 'all',
     priceRange: [0, 20000],
     minRating: 0,
+    roomTypes: [] as string[],
+    amenities: [] as string[],
   });
 
   const [hotels, setHotels] = useState<HotelWithRooms[]>([]);
@@ -49,6 +59,7 @@ export const RoomSearch = () => {
     // Apply client-side filters
     let filtered = results;
     
+    // Filter by Min Rating
     if (filters.minRating > 0) {
       filtered = filtered.filter(hotel => hotel.rating >= filters.minRating);
     }
@@ -61,6 +72,28 @@ export const RoomSearch = () => {
                 room.price_per_night <= filters.priceRange[1]
       );
     });
+
+    // Filter by Room Types (OR logic - hotel must have at least one of the selected room types)
+    if (filters.roomTypes.length > 0) {
+      filtered = filtered.filter(hotel => {
+        if (!hotel.rooms || hotel.rooms.length === 0) return false;
+        return hotel.rooms.some(room => {
+          const roomName = (room.name || '').toLowerCase();
+          const roomTypeStr = ((room as any).type || (room as any).room_type || '').toLowerCase();
+          return filters.roomTypes.some(type => 
+            roomName.includes(type.toLowerCase()) || roomTypeStr.includes(type.toLowerCase())
+          );
+        });
+      });
+    }
+
+    // Filter by Amenities (AND logic - hotel must have all selected amenities)
+    if (filters.amenities.length > 0) {
+      filtered = filtered.filter(hotel => {
+        if (!hotel.amenities || hotel.amenities.length === 0) return false;
+        return filters.amenities.every(amenity => hotel.amenities.includes(amenity));
+      });
+    }
     
     setHotels(filtered);
     setLoading(false);
@@ -68,7 +101,15 @@ export const RoomSearch = () => {
 
   useEffect(() => {
     fetchHotels();
-  }, [filters.search, filters.destination, filters.minRating, filters.priceRange]);
+  }, [
+    filters.search, 
+    filters.destination, 
+    filters.minRating, 
+    filters.priceRange[0], 
+    filters.priceRange[1],
+    filters.roomTypes.join(','),
+    filters.amenities.join(',')
+  ]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-PH', {
@@ -87,6 +128,22 @@ export const RoomSearch = () => {
     fetchHotels();
   };
 
+  const handleArrayFilterToggle = (type: 'roomTypes' | 'amenities', value: string) => {
+    setFilters(prev => {
+      const currentList = prev[type];
+      const currentIndex = currentList.indexOf(value);
+      const newList = [...currentList];
+
+      if (currentIndex === -1) {
+        newList.push(value);
+      } else {
+        newList.splice(currentIndex, 1);
+      }
+
+      return { ...prev, [type]: newList };
+    });
+  };
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" fontWeight={700} gutterBottom>
@@ -98,7 +155,7 @@ export const RoomSearch = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, position: 'sticky', top: 80 }}>
+          <Paper sx={{ p: 3, position: 'sticky', top: 80, maxHeight: '85vh', overflowY: 'auto' }}>
             <Typography variant="h6" fontWeight={600} gutterBottom>
               Filters
             </Typography>
@@ -112,7 +169,7 @@ export const RoomSearch = () => {
               margin="normal"
               size="small"
               InputProps={{
-                endAdornment: <Search sx={{ color: 'text.secondary' }} />,
+                endAdornment: <Search sx={{ color: 'text.secondary', cursor: 'pointer' }} onClick={handleSearch} />,
               }}
             />
 
@@ -132,9 +189,12 @@ export const RoomSearch = () => {
               </Select>
             </FormControl>
 
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="body2" gutterBottom>
-                Price Range: {formatPrice(filters.priceRange[0])} - {formatPrice(filters.priceRange[1])}
+            <Box sx={{ mt: 3, mb: 2 }}>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Price Range
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {formatPrice(filters.priceRange[0])} - {formatPrice(filters.priceRange[1])}
               </Typography>
               <Slider
                 value={filters.priceRange}
@@ -144,22 +204,79 @@ export const RoomSearch = () => {
                 min={0}
                 max={20000}
                 step={500}
+                sx={{ mx: 1, width: 'calc(100% - 16px)' }}
               />
             </Box>
 
-            <FormControl fullWidth margin="normal" size="small">
-              <InputLabel>Min Rating</InputLabel>
-              <Select
-                value={filters.minRating}
-                label="Min Rating"
-                onChange={(e) => setFilters({ ...filters, minRating: e.target.value as number })}
-              >
-                <MenuItem value={0}>All Ratings</MenuItem>
-                <MenuItem value={4.0}>4.0+ Stars</MenuItem>
-                <MenuItem value={4.5}>4.5+ Stars</MenuItem>
-                <MenuItem value={4.8}>4.8+ Stars</MenuItem>
-              </Select>
-            </FormControl>
+            <Divider sx={{ my: 2 }} />
+
+            {/* Improved Rating Filter */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Minimum Rating
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Rating
+                  name="min-rating"
+                  value={filters.minRating}
+                  precision={0.5}
+                  onChange={(_, newValue) => {
+                    setFilters({ ...filters, minRating: newValue || 0 });
+                  }}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  {filters.minRating > 0 ? `& Up` : 'Any'}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* New Room Type Filter */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Room Type
+              </Typography>
+              <FormGroup>
+                {AVAILABLE_ROOM_TYPES.map((type) => (
+                  <FormControlLabel
+                    key={type}
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={filters.roomTypes.includes(type)}
+                        onChange={() => handleArrayFilterToggle('roomTypes', type)}
+                      />
+                    }
+                    label={<Typography variant="body2">{type}</Typography>}
+                  />
+                ))}
+              </FormGroup>
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* New Amenities Filter */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                Amenities
+              </Typography>
+              <FormGroup>
+                {AVAILABLE_AMENITIES.map((amenity) => (
+                  <FormControlLabel
+                    key={amenity}
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={filters.amenities.includes(amenity)}
+                        onChange={() => handleArrayFilterToggle('amenities', amenity)}
+                      />
+                    }
+                    label={<Typography variant="body2">{amenity}</Typography>}
+                  />
+                ))}
+              </FormGroup>
+            </Box>
 
             <Button
               fullWidth
@@ -171,6 +288,8 @@ export const RoomSearch = () => {
                   destination: 'all',
                   priceRange: [0, 20000],
                   minRating: 0,
+                  roomTypes: [],
+                  amenities: [],
                 });
               }}
             >
@@ -316,6 +435,8 @@ export const RoomSearch = () => {
                     destination: 'all',
                     priceRange: [0, 20000],
                     minRating: 0,
+                    roomTypes: [],
+                    amenities: [],
                   });
                 }}
               >

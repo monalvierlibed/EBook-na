@@ -20,6 +20,7 @@ import {
   Select,
   MenuItem,
   CircularProgress,
+  Divider,
 } from '@mui/material';
 import { CheckCircle, CalendarMonth, Person } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
@@ -60,7 +61,7 @@ export const Booking = () => {
           *,
           hotel:hotels(*)
         `)
-        .eq('id', roomId)
+        .eq('id', roomId || '') // Fix: Ensure it's treated as a string for strict TS
         .single();
 
       if (!error && data) {
@@ -96,6 +97,15 @@ export const Booking = () => {
       currency: 'PHP',
       minimumFractionDigits: 0,
     }).format(price);
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-PH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   if (loading) {
@@ -282,7 +292,8 @@ export const Booking = () => {
                       label="Number of Guests"
                       onChange={(e) => setFormData({ ...formData, guests: e.target.value as number })}
                     >
-                      {Array.from({ length: room.capacity }, (_, i) => i + 1).map((num) => (
+                      {/* Fix: safely handle undefined capacity by defaulting to 1 */}
+                      {Array.from({ length: room.capacity || 1 }, (_, i) => i + 1).map((num) => (
                         <MenuItem key={num} value={num}>
                           {num} {num === 1 ? 'Guest' : 'Guests'}
                         </MenuItem>
@@ -397,7 +408,8 @@ export const Booking = () => {
         </Grid>
       </form>
 
-      <Dialog open={showConfirmation} maxWidth="sm" fullWidth>
+      {/* Fix: Added dummy onClose to satisfy strict DialogProps rules */}
+      <Dialog open={showConfirmation} onClose={() => {}} maxWidth="sm" fullWidth disableEscapeKeyDown>
         <DialogContent sx={{ textAlign: 'center', py: 4 }}>
           <CheckCircle sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
           <DialogTitle sx={{ p: 0, mb: 1 }}>
@@ -408,23 +420,65 @@ export const Booking = () => {
           <Typography variant="body1" color="text.secondary" paragraph>
             Salamat! Your booking has been successfully placed.
           </Typography>
-          <Paper sx={{ bgcolor: '#F1F5F9', p: 2, mb: 2 }}>
+          
+          <Paper sx={{ bgcolor: '#F1F5F9', p: 3, mb: 3, borderRadius: 2 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Booking Reference
             </Typography>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h5" fontWeight={700} color="primary.main" gutterBottom>
               {bookingId}
             </Typography>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Box sx={{ textAlign: 'left' }}>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+                Booking Summary
+              </Typography>
+              
+              {/* Fix: Changed to integer spacing (2) as some strict MUI versions reject float grid spacing */}
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">Hotel</Typography>
+                  <Typography variant="body2" fontWeight={600}>{room?.hotel?.name}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">Room</Typography>
+                  <Typography variant="body2" fontWeight={600}>{room?.name}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">Check-in</Typography>
+                  <Typography variant="body2" fontWeight={600}>{formatDate(formData.checkIn)}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">Check-out</Typography>
+                  <Typography variant="body2" fontWeight={600}>{formatDate(formData.checkOut)}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">Guests</Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {formData.guests} {formData.guests === 1 ? 'Guest' : 'Guests'} ({nights} {nights === 1 ? 'Night' : 'Nights'})
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="text.secondary" display="block">Total Amount Paid</Typography>
+                  <Typography variant="body1" fontWeight={700} color="success.main">
+                    {formatPrice(total)}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Box>
           </Paper>
+          
           <Typography variant="body2" color="text.secondary">
-            A confirmation email has been sent to {formData.email}
+            A confirmation email has been sent to <strong>{formData.email}</strong>
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
-          <Button variant="outlined" onClick={() => navigate('/search')}>
+        <DialogActions sx={{ justifyContent: 'center', pb: 4, px: 4, gap: 2 }}>
+          <Button variant="outlined" onClick={() => navigate('/search')} sx={{ flex: 1 }}>
             Browse More Hotels
           </Button>
-          <Button variant="contained" onClick={() => navigate('/bookings')}>
+          <Button variant="contained" onClick={() => navigate('/bookings')} sx={{ flex: 1 }}>
             View My Bookings
           </Button>
         </DialogActions>
