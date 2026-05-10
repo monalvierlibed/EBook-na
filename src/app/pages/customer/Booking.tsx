@@ -49,8 +49,15 @@ export const Booking = () => {
   });
 
   const [submitting, setSubmitting] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [bookingId, setBookingId] = useState('');
+  const [paymentDetails, setPaymentDetails] = useState({
+    cardName: '',
+    cardNumber: '',
+    expiry: '',
+    cvv: '',
+  });
 
   useEffect(() => {
     const fetchRoom = async () => {
@@ -143,6 +150,38 @@ export const Booking = () => {
   const taxes = subtotal * 0.12; // 12% VAT in Philippines
   const total = subtotal + serviceFee + taxes;
 
+  const validatePaymentDetails = () => {
+    if (!paymentDetails.cardName.trim()) {
+      toast.error('Please enter the cardholder name');
+      return false;
+    }
+
+    const cleanedNumber = paymentDetails.cardNumber.replace(/\s+/g, '');
+    if (!/^\d{16}$/.test(cleanedNumber)) {
+      toast.error('Please enter a valid 16-digit card number');
+      return false;
+    }
+
+    if (!/^(0[1-9]|1[0-2])\/(\d{2})$/.test(paymentDetails.expiry)) {
+      toast.error('Please enter expiry in MM/YY format');
+      return false;
+    }
+
+    if (!/^\d{3,4}$/.test(paymentDetails.cvv)) {
+      toast.error('Please enter a valid CVV');
+      return false;
+    }
+
+    return true;
+  };
+
+  const simulateMockPayment = async () => {
+    setPaymentProcessing(true);
+    await new Promise((resolve) => setTimeout(resolve, 1400));
+    setPaymentProcessing(false);
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -157,7 +196,18 @@ export const Booking = () => {
       return;
     }
 
+    if (!validatePaymentDetails()) {
+      return;
+    }
+
     setSubmitting(true);
+
+    const paymentSuccess = await simulateMockPayment();
+    if (!paymentSuccess) {
+      toast.error('Mock payment failed. Please verify your details and try again.');
+      setSubmitting(false);
+      return;
+    }
 
     const { error } = await createBooking({
       room_id: room.id,
@@ -165,7 +215,7 @@ export const Booking = () => {
       check_out: formData.checkOut,
       guests: formData.guests,
       total_price: total,
-      status: 'pending',
+      status: 'confirmed',
       special_requests: formData.specialRequests || null,
     });
 
@@ -173,6 +223,7 @@ export const Booking = () => {
       toast.error(error.message);
       setSubmitting(false);
     } else {
+      toast.success('Payment successful! Your booking is confirmed.');
       setBookingId(`EBOK-${Date.now().toString(36).toUpperCase()}`);
       setShowConfirmation(true);
       setSubmitting(false);
@@ -389,20 +440,70 @@ export const Booking = () => {
                 </Box>
               </Box>
 
-              <Button 
-                fullWidth 
-                variant="contained" 
-                size="large" 
+              <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: '#F8FAFC' }}>
+                <Typography variant="body2" fontWeight={600} gutterBottom>
+                  Payment Details (Mock)
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                  Enter test card information to simulate payment.
+                </Typography>
+
+                <TextField
+                  fullWidth
+                  label="Cardholder Name"
+                  name="cardName"
+                  value={paymentDetails.cardName}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, cardName: e.target.value })}
+                  disabled={submitting}
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Card Number"
+                  name="cardNumber"
+                  value={paymentDetails.cardNumber}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })}
+                  disabled={submitting}
+                  placeholder="1234 5678 9012 3456"
+                  sx={{ mb: 2 }}
+                />
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      label="Expiry (MM/YY)"
+                      name="expiry"
+                      value={paymentDetails.expiry}
+                      onChange={(e) => setPaymentDetails({ ...paymentDetails, expiry: e.target.value })}
+                      disabled={submitting}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      label="CVV"
+                      name="cvv"
+                      value={paymentDetails.cvv}
+                      onChange={(e) => setPaymentDetails({ ...paymentDetails, cvv: e.target.value })}
+                      disabled={submitting}
+                    />
+                  </Grid>
+                </Grid>
+                <Typography variant="caption" color="text.secondary">
+                  This is a mock payment flow. No real charges will occur.
+                </Typography>
+              </Paper>
+
+              <Button
+                fullWidth
+                variant="contained"
+                size="large"
                 type="submit"
                 disabled={submitting}
                 startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
               >
-                {submitting ? 'Processing...' : 'Confirm Booking'}
+                {submitting ? (paymentProcessing ? 'Processing Payment...' : 'Processing...') : 'Confirm Booking'}
               </Button>
-
-              <Typography variant="caption" color="text.secondary" align="center" display="block" sx={{ mt: 2 }}>
-                Free cancellation within 24 hours
-              </Typography>
             </Paper>
           </Grid>
         </Grid>

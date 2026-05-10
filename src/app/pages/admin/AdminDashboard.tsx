@@ -226,7 +226,7 @@ export const AdminDashboard = () => {
 
       {/* Metrics Row */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item component="div" component="div" xs={12} sm={6} md={3}>
+        <Grid item component="div" xs={12} sm={6} md={3}>
           <StatCard 
             title="Total Revenue" 
             value={formatPrice(metrics.totalRevenue)} 
