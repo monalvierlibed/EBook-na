@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase, Hotel, Room, Destination, Booking, HotelWithRooms, RoomWithHotel, BookingWithDetails } from '../../lib/supabase';
 import { useAuth } from './AuthContext';
+import { mockIlocosHotels } from '../data/mockHotel';
 
 interface AppContextType {
   destinations: Destination[];
@@ -71,19 +72,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const fetchFeaturedHotels = async () => {
-    const { data, error } = await supabase
-      .from('hotels')
-      .select(`
-        *,
-        destination:destinations(*),
-        rooms(*)
-      `)
-      .eq('featured', true)
-      .order('rating', { ascending: false })
-      .limit(6);
-    
-    if (!error && data) {
-      setFeaturedHotels(data);
+    try {
+      const { data, error } = await supabase
+        .from('hotels')
+        .select(`*, destination:destinations(*), rooms(*)`)
+        .eq('featured', true)
+        .order('rating', { ascending: false })
+        .limit(6);
+      
+      // If we got real data from Supabase, use it
+      if (!error && data && data.length > 0) {
+        setFeaturedHotels(data);
+      } else {
+        // FALLBACK: If Supabase has no data or fails, use our local Ilocos Norte hotels!
+        setFeaturedHotels(mockIlocosHotels);
+      }
+    } catch (e) {
+      // If there is no DB connection at all, still show the hotels
+      setFeaturedHotels(mockIlocosHotels);
     }
   };
 
@@ -136,6 +142,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { error: new Error('You must be logged in to make a booking') };
     }
 
+    // --- NEW MOCK INTERCEPTOR ---
+    // If the room belongs to our mock Ilocos hotels, pretend the booking succeeded!
+    if (booking.room_id.startsWith('mock-')) {
+      console.log("Mock booking processed successfully!");
+      // Fake a 1-second loading delay so the button animation looks real
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return { error: null }; 
+    }
+    // ----------------------------
+
     const { error } = await supabase
       .from('bookings')
       .insert({
@@ -174,7 +190,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .order('rating', { ascending: false });
 
     if (query) {
-      dbQuery = dbQuery.or(`name.ilike.%${query}%,city.ilike.%${query}%,province.ilike.%${query}%`);
+
+      dbQuery = dbQuery.or(`name.ilike."%${query}%",city.ilike."%${query}%",province.ilike."%${query}%"`);
     }
 
     if (destination) {

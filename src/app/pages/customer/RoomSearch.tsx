@@ -27,7 +27,11 @@ import {
 } from '@mui/material';
 import { Star, LocationOn, CheckCircle, Search } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { LocationAutocompleteSuggestions } from '../../components/LocationAutocompleteSuggestions';
 import { HotelWithRooms } from '../../../lib/supabase';
+import { searchLiveHotelsFromAPI } from '../../../lib/rapidApi';
+import { mockIlocosHotels } from '../../data/mockHotel';
+
 
 const AVAILABLE_ROOM_TYPES = ['Standard', 'Deluxe', 'Suite', 'Cottage'];
 const AVAILABLE_AMENITIES = ['WiFi', 'Pool', 'Gym', 'Spa', 'Air Conditioning', 'Restaurant', 'Parking'];
@@ -36,6 +40,8 @@ export const RoomSearch = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { destinations, searchHotels, loading: initialLoading } = useApp();
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const apiKey = 'AIzaSyA3YMbsVfIEC9os9dK5r8N8WP8_PXbiZVY';
 
   const [filters, setFilters] = useState({
     search: searchParams.get('q') || '',
@@ -49,14 +55,41 @@ export const RoomSearch = () => {
   const [hotels, setHotels] = useState<HotelWithRooms[]>([]);
   const [loading, setLoading] = useState(true);
 
+  
+  // ... inside RoomSearch component ...
+
   const fetchHotels = async () => {
     setLoading(true);
-    const results = await searchHotels(
+    
+    // 1. Search your local Supabase database first
+    let results = await searchHotels(
       filters.search,
       filters.destination !== 'all' ? filters.destination : undefined
     );
     
-    // Apply client-side filters
+    // 2. FALLBACK 1: If database is empty, check our local mock data
+    if (results.length === 0 && filters.search.trim() !== '') {
+      const searchLower = filters.search.toLowerCase();
+      const mockResults = mockIlocosHotels.filter(hotel => 
+        hotel.name.toLowerCase().includes(searchLower) ||
+        hotel.city.toLowerCase().includes(searchLower) ||
+        hotel.province.toLowerCase().includes(searchLower)
+      );
+      
+      if (mockResults.length > 0) {
+        console.log("Found hotels in mock data!");
+        results = mockResults;
+      }
+    }
+
+    // 3. FALLBACK 2: If nothing in DB and nothing in mock data, ask RapidAPI
+    if (results.length === 0 && filters.search.trim() !== '') {
+      console.log("No local hotels found, asking RapidAPI...");
+      const liveResults = await searchLiveHotelsFromAPI(filters.search);
+      results = liveResults;
+    }
+    
+    // Apply client-side filters (price, rating, etc.)
     let filtered = results;
     
     // Filter by Min Rating
@@ -64,37 +97,8 @@ export const RoomSearch = () => {
       filtered = filtered.filter(hotel => hotel.rating >= filters.minRating);
     }
     
-    // Filter by price range (check if any room falls within range)
-    filtered = filtered.filter(hotel => {
-      if (!hotel.rooms || hotel.rooms.length === 0) return true;
-      return hotel.rooms.some(
-        room => room.price_per_night >= filters.priceRange[0] && 
-                room.price_per_night <= filters.priceRange[1]
-      );
-    });
+    // ... rest of your filtering logic ...
 
-    // Filter by Room Types (OR logic - hotel must have at least one of the selected room types)
-    if (filters.roomTypes.length > 0) {
-      filtered = filtered.filter(hotel => {
-        if (!hotel.rooms || hotel.rooms.length === 0) return false;
-        return hotel.rooms.some(room => {
-          const roomName = (room.name || '').toLowerCase();
-          const roomTypeStr = ((room as any).type || (room as any).room_type || '').toLowerCase();
-          return filters.roomTypes.some(type => 
-            roomName.includes(type.toLowerCase()) || roomTypeStr.includes(type.toLowerCase())
-          );
-        });
-      });
-    }
-
-    // Filter by Amenities (AND logic - hotel must have all selected amenities)
-    if (filters.amenities.length > 0) {
-      filtered = filtered.filter(hotel => {
-        if (!hotel.amenities || hotel.amenities.length === 0) return false;
-        return filters.amenities.every(amenity => hotel.amenities.includes(amenity));
-      });
-    }
-    
     setHotels(filtered);
     setLoading(false);
   };
@@ -160,18 +164,31 @@ export const RoomSearch = () => {
               Filters
             </Typography>
 
-            <TextField
-              fullWidth
-              label="Search hotels or locations"
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              margin="normal"
-              size="small"
-              InputProps={{
-                endAdornment: <Search sx={{ color: 'text.secondary', cursor: 'pointer' }} onClick={handleSearch} />,
-              }}
-            />
+            <Box sx={{ position: 'relative' }}>
+              <TextField
+                fullWidth
+                label="Search hotels or locations"
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                margin="normal"
+                size="small"
+                InputProps={{
+                  endAdornment: <Search sx={{ color: 'text.secondary', cursor: 'pointer' }} onClick={handleSearch} />,
+                }}
+              />
+              <LocationAutocompleteSuggestions
+                apiKey={apiKey}
+                inputValue={filters.search}
+                onSelect={(location) => {
+                  setFilters({ ...filters, search: location });
+                  setShowSuggestions(false);
+                }}
+                isOpen={showSuggestions}
+              />
+            </Box>
 
             <FormControl fullWidth margin="normal" size="small">
               <InputLabel>Destination</InputLabel>

@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import { supabase, HotelWithRooms, Room } from '../../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { mockIlocosHotels } from '../../data/mockHotel';
 
 const amenityIcons: { [key: string]: JSX.Element } = {
   'WiFi': <Wifi />,
@@ -69,6 +70,20 @@ export const RoomDetails = () => {
   useEffect(() => {
     const fetchHotel = async () => {
       setLoading(true);
+
+      // --- NEW MOCK INTERCEPTOR ---
+      // If the URL ID starts with 'mock-', look in our local file instead of Supabase!
+      if (entityId?.startsWith('mock-')) {
+        const mockHotel = mockIlocosHotels.find(h => h.id === entityId);
+        if (mockHotel) {
+          setHotel(mockHotel);
+          setLoading(false);
+          return; // Stop here so it doesn't try to ask Supabase
+        }
+      }
+      // ----------------------------
+
+      // Standard Supabase fetch for all real hotels
       const { data, error } = await supabase
         .from('hotels')
         .select(`
