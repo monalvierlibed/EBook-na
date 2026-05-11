@@ -4,6 +4,7 @@ import { TextField, Button, Typography, Box, Divider, Alert, CircularProgress } 
 import { Flight, Login as LoginIcon, Google, Facebook } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'sonner';
+import { supabase } from '../../../lib/supabase';
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -27,7 +28,27 @@ export const Login = () => {
       setLoading(false);
     } else {
       toast.success('Maligayang pagbabalik! Welcome back!');
-      navigate('/');
+      
+      // Wait to get the user's ID
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Look up their role right now
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        // Send them to the correct dashboard based on their role
+        if (profile?.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+      } else {
+        navigate('/');
+      }
     }
   };
 

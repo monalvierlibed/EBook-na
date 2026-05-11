@@ -199,9 +199,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Initial data fetch
+  // Initial data fetch
   useEffect(() => {
+    let mounted = true;
+
+    // THE FAILSAFE: If the database hangs for more than 3 seconds, force the UI to unlock!
+    const emergencyUnlock = setTimeout(() => {
+      if (mounted) {
+        console.warn("Database took too long to respond. Unlocking UI.");
+        setLoading(false);
+      }
+    }, 3000);
+
     const initData = async () => {
-      setLoading(true);
       try {
         await Promise.all([
           fetchDestinations(),
@@ -211,13 +221,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (error) {
         console.error('Error initializing app data:', error);
       } finally {
-        setLoading(false);
+        clearTimeout(emergencyUnlock);
+        if (mounted) setLoading(false);
       }
     };
 
     initData();
-  }, []);
 
+    return () => {
+      mounted = false;
+      clearTimeout(emergencyUnlock);
+    };
+  }, []);
+  
   // Fetch bookings when user changes
   useEffect(() => {
     const loadBookings = async () => {
