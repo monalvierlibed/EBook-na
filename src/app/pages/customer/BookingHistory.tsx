@@ -1,186 +1,246 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
 import {
   Container,
   Typography,
   Box,
-  Paper,
+  Card,
+  CardContent,
   Grid,
   Chip,
   Button,
-  CircularProgress,
-  Card,
-  CardContent,
-  CardMedia,
+  Dialog,
+  DialogContent,
+  DialogActions,
   Divider,
+  CircularProgress,
+  GlobalStyles
 } from '@mui/material';
-import { CalendarMonth, Hotel as HotelIcon, AttachMoney, Receipt } from '@mui/icons-material';
-import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../../lib/supabase';
+import { ConfirmationNumber, Print, Hotel, CalendarMonth, Payment } from '@mui/icons-material';
+import { useApp } from '../../context/AppContext';
+import { BookingWithDetails } from '../../../lib/supabase';
 
 export const BookingHistory = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { bookings, fetchBookings, loading } = useApp();
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
 
+  // Fetch bookings when the page loads
   useEffect(() => {
-    const fetchMyBookings = async () => {
-      if (!user) return;
-      
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          id, created_at, check_in, check_out, total_price, status, guests,
-          rooms (
-            name,
-            images,
-            hotel:hotels (name, city, province)
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+    fetchBookings();
+  }, []);
 
-      if (!error && data) {
-        setBookings(data);
-      }
-      setLoading(false);
-    };
+  const handleOpenVoucher = (booking: BookingWithDetails) => {
+    setSelectedBooking(booking);
+  };
 
-    fetchMyBookings();
-  }, [user]);
+  const handleCloseVoucher = () => {
+    setSelectedBooking(null);
+  };
 
-  const getStatusChip = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-      case 'approved':
-        return <Chip label="Confirmed" color="success" size="small" sx={{ fontWeight: 600 }} />;
-      case 'pending':
-        return <Chip label="Pending" color="warning" size="small" sx={{ fontWeight: 600 }} />;
-      case 'cancelled':
-        return <Chip label="Cancelled" color="error" size="small" sx={{ fontWeight: 600 }} />;
-      case 'completed':
-        return <Chip label="Completed" color="info" size="small" sx={{ fontWeight: 600 }} />;
-      default:
-        return <Chip label={status || 'Unknown'} size="small" />;
-    }
+  const handlePrint = () => {
+    window.print();
   };
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-PH', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP',
-      minimumFractionDigits: 0,
-    }).format(price || 0);
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(price);
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="md" sx={{ py: 6 }}>
+      {/* This GlobalStyle is the magic trick! 
+        When the user hits "Print", it hides the whole website EXCEPT the voucher.
+      */}
+      <GlobalStyles styles={{
+        '@media print': {
+          'body *': { visibility: 'hidden' },
+          '#printable-voucher, #printable-voucher *': { visibility: 'visible' },
+          '#printable-voucher': { 
+            position: 'absolute', 
+            left: 0, 
+            top: 0, 
+            width: '100%',
+            boxShadow: 'none',
+          },
+          '.no-print': { display: 'none !important' }
+        }
+      }} />
+
       <Typography variant="h4" fontWeight={700} gutterBottom>
         My Bookings
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        View and manage your past and upcoming stays.
+        View and download your confirmed hotel reservations.
       </Typography>
 
       {bookings.length === 0 ? (
-        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3 }}>
-          <Receipt sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No bookings found
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Looks like you haven't booked a stay with us yet.
-          </Typography>
-          <Button variant="contained" onClick={() => navigate('/search')}>
-            Explore Hotels
-          </Button>
-        </Paper>
+        <Card sx={{ p: 4, textAlign: 'center', bgcolor: '#F8FAFC' }}>
+          <Typography variant="h6" color="text.secondary">You have no bookings yet.</Typography>
+        </Card>
       ) : (
         <Grid container spacing={3}>
           {bookings.map((booking) => (
             <Grid item xs={12} key={booking.id}>
-              <Card sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, borderRadius: 3, overflow: 'hidden' }}>
-                <CardMedia
-                  component="img"
-                  sx={{ width: { xs: '100%', md: 300 }, height: { xs: 200, md: 'auto' }, objectFit: 'cover' }}
-                  image={booking.rooms?.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'}
-                  alt={booking.rooms?.name}
-                />
-                <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
-                  <CardContent sx={{ flex: '1 0 auto', p: 3 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                      <Box>
-                        <Typography variant="h6" fontWeight={700}>
-                          {booking.rooms?.hotel?.name || 'Hotel Name Unavailable'}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                          <HotelIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                          {booking.rooms?.name || 'Room Name Unavailable'}
-                        </Typography>
-                      </Box>
-                      {getStatusChip(booking.status)}
-                    </Box>
-
-                    <Divider sx={{ my: 2 }} />
-
-                    <Grid container spacing={2}>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary" display="block">Check-in</Typography>
-                        <Typography variant="body2" fontWeight={600}>
-                          {formatDate(booking.check_in)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary" display="block">Check-out</Typography>
-                        <Typography variant="body2" fontWeight={600}>
-                          {formatDate(booking.check_out)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary" display="block">Guests</Typography>
-                        <Typography variant="body2" fontWeight={600}>
-                          {booking.guests || 1} {booking.guests === 1 ? 'Guest' : 'Guests'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary" display="block">Total Paid</Typography>
-                        <Typography variant="body2" fontWeight={700} color="primary.main">
-                          {formatPrice(booking.total_price)}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                    
-                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                        <Typography variant="caption" color="text.disabled">
-                            Booking Ref: {booking.id.split('-')[0].toUpperCase()}
-                        </Typography>
-                    </Box>
-                  </CardContent>
+              <Card sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', p: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h6" fontWeight={600}>
+                    {booking.room?.hotel?.name || 'Hotel Name Unavailable'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {booking.room?.name || 'Room Details Unavailable'}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                    <Chip size="small" icon={<CalendarMonth />} label={`${formatDate(booking.check_in)} - ${formatDate(booking.check_out)}`} />
+                    <Chip 
+                      size="small" 
+                      label={booking.status.toUpperCase()} 
+                      color={booking.status === 'confirmed' ? 'success' : 'warning'} 
+                    />
+                  </Box>
+                </Box>
+                
+                <Box sx={{ mt: { xs: 2, sm: 0 }, ml: { sm: 2 }, minWidth: '140px' }}>
+                  <Button 
+                    variant="contained" 
+                    fullWidth 
+                    startIcon={<ConfirmationNumber />}
+                    onClick={() => handleOpenVoucher(booking)}
+                    disabled={booking.status !== 'confirmed'}
+                  >
+                    View Voucher
+                  </Button>
                 </Box>
               </Card>
             </Grid>
           ))}
         </Grid>
       )}
+
+      {/* --- THE VOUCHER MODAL --- */}
+      <Dialog 
+        open={!!selectedBooking} 
+        onClose={handleCloseVoucher}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        {selectedBooking && (
+          <>
+            {/* The actual printable area */}
+            <DialogContent id="printable-voucher" sx={{ p: 0, overflow: 'hidden' }}>
+              {/* Hotel Header */}
+              <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 4, textAlign: 'center' }}>
+                <Typography variant="h4" fontWeight={800} letterSpacing={2}>
+                  E-BOOK MO NA
+                </Typography>
+                <Typography variant="subtitle2" sx={{ opacity: 0.8, letterSpacing: 1 }}>
+                  OFFICIAL BOOKING VOUCHER
+                </Typography>
+              </Box>
+
+              <Box sx={{ p: 4 }}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">
+                      BOOKING REFERENCE
+                    </Typography>
+                    <Typography variant="h5" fontWeight={700} color="primary.main">
+                      {selectedBooking.id.split('-')[0].toUpperCase()}
+                    </Typography>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Divider />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                      <Hotel color="action" sx={{ mr: 1, mt: 0.5 }} />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block">HOTEL</Typography>
+                        <Typography variant="body1" fontWeight={600}>{selectedBooking.room?.hotel?.name}</Typography>
+                        <Typography variant="body2" color="text.secondary">{selectedBooking.room?.name}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                      <CalendarMonth color="action" sx={{ mr: 1, mt: 0.5 }} />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block">DATES</Typography>
+                        <Typography variant="body2"><strong>Check-in:</strong> {formatDate(selectedBooking.check_in)}</Typography>
+                        <Typography variant="body2"><strong>Check-out:</strong> {formatDate(selectedBooking.check_out)}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Divider />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                      <Payment color="action" sx={{ mr: 1, mt: 0.5 }} />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block">AMOUNT PAID</Typography>
+                        <Typography variant="h6" fontWeight={700} color="success.main">
+                          {formatPrice(selectedBooking.total_price)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">Status: PAID</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+
+                  <Grid item xs={12} sm={6} sx={{ textAlign: { sm: 'right' } }}>
+                    <Typography variant="caption" color="text.secondary" display="block">GUESTS</Typography>
+                    <Typography variant="body1" fontWeight={600}>{selectedBooking.guests} Person(s)</Typography>
+                  </Grid>
+
+                </Grid>
+
+                {/* Mock QR Code for Professional Flair */}
+                <Box sx={{ mt: 4, textAlign: 'center', p: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px dashed #CBD5E1' }}>
+                  <Box sx={{ width: 100, height: 100, bgcolor: 'black', mx: 'auto', mb: 1, 
+                    backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #ccc 10px, #ccc 20px)' }} 
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Present this voucher upon check-in.
+                  </Typography>
+                </Box>
+              </Box>
+            </DialogContent>
+
+            {/* Action Buttons (Hidden when printing) */}
+            <DialogActions className="no-print" sx={{ p: 3, bgcolor: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+              <Button onClick={handleCloseVoucher} color="inherit">
+                Close
+              </Button>
+              <Button 
+                onClick={handlePrint} 
+                variant="contained" 
+                startIcon={<Print />}
+              >
+                Save as PDF / Print
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Container>
   );
 };
