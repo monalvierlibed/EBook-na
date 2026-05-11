@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase, Hotel, Room, Destination, Booking, HotelWithRooms, RoomWithHotel, BookingWithDetails } from '../../lib/supabase';
 import { useAuth } from './AuthContext';
+import { mockIlocosHotels } from '../data/mockHotel';
 
 interface AppContextType {
   destinations: Destination[];
@@ -71,19 +72,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const fetchFeaturedHotels = async () => {
-    const { data, error } = await supabase
-      .from('hotels')
-      .select(`
-        *,
-        destination:destinations(*),
-        rooms(*)
-      `)
-      .eq('featured', true)
-      .order('rating', { ascending: false })
-      .limit(6);
-    
-    if (!error && data) {
-      setFeaturedHotels(data);
+    try {
+      const { data, error } = await supabase
+        .from('hotels')
+        .select(`*, destination:destinations(*), rooms(*)`)
+        .eq('featured', true)
+        .order('rating', { ascending: false })
+        .limit(6);
+      
+      // If we got real data from Supabase, use it
+      if (!error && data && data.length > 0) {
+        setFeaturedHotels(data);
+      } else {
+        // FALLBACK: If Supabase has no data or fails, use our local Ilocos Norte hotels!
+        setFeaturedHotels(mockIlocosHotels);
+      }
+    } catch (e) {
+      // If there is no DB connection at all, still show the hotels
+      setFeaturedHotels(mockIlocosHotels);
     }
   };
 
@@ -174,7 +180,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .order('rating', { ascending: false });
 
     if (query) {
-      dbQuery = dbQuery.or(`name.ilike.%${query}%,city.ilike.%${query}%,province.ilike.%${query}%`);
+
+      dbQuery = dbQuery.or(`name.ilike."%${query}%",city.ilike."%${query}%",province.ilike."%${query}%"`);
     }
 
     if (destination) {
@@ -192,9 +199,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Initial data fetch
+  // Initial data fetch
   useEffect(() => {
+    let mounted = true;
+
+    // THE FAILSAFE: If the database hangs for more than 3 seconds, force the UI to unlock!
+    const emergencyUnlock = setTimeout(() => {
+      if (mounted) {
+        console.warn("Database took too long to respond. Unlocking UI.");
+        setLoading(false);
+      }
+    }, 3000);
+
     const initData = async () => {
-      setLoading(true);
       try {
         await Promise.all([
           fetchDestinations(),
@@ -204,13 +221,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       } catch (error) {
         console.error('Error initializing app data:', error);
       } finally {
-        setLoading(false);
+        clearTimeout(emergencyUnlock);
+        if (mounted) setLoading(false);
       }
     };
 
     initData();
-  }, []);
 
+    return () => {
+      mounted = false;
+      clearTimeout(emergencyUnlock);
+    };
+  }, []);
+  
   // Fetch bookings when user changes
   useEffect(() => {
     const loadBookings = async () => {

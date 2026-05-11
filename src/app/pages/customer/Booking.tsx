@@ -59,6 +59,10 @@ export const Booking = () => {
     cvv: '',
   });
 
+  // Add these inside your component
+  const [paymentMethod, setPaymentMethod] = useState('gcash');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
   useEffect(() => {
     const fetchRoom = async () => {
       setLoading(true);
@@ -151,25 +155,33 @@ export const Booking = () => {
   const total = subtotal + serviceFee + taxes;
 
   const validatePaymentDetails = () => {
-    if (!paymentDetails.cardName.trim()) {
-      toast.error('Please enter the cardholder name');
-      return false;
+    // If they chose GCash, we skip the card validation
+    if (paymentMethod === 'gcash') {
+      return true; // You can add phone number validation here later if you want
     }
 
-    const cleanedNumber = paymentDetails.cardNumber.replace(/\s+/g, '');
-    if (!/^\d{16}$/.test(cleanedNumber)) {
-      toast.error('Please enter a valid 16-digit card number');
-      return false;
-    }
+    // If they chose Card, run the strict validation
+    if (paymentMethod === 'card') {
+      if (!paymentDetails.cardName.trim()) {
+        toast.error('Please enter the cardholder name');
+        return false;
+      }
 
-    if (!/^(0[1-9]|1[0-2])\/(\d{2})$/.test(paymentDetails.expiry)) {
-      toast.error('Please enter expiry in MM/YY format');
-      return false;
-    }
+      const cleanedNumber = paymentDetails.cardNumber.replace(/\s+/g, '');
+      if (!/^\d{16}$/.test(cleanedNumber)) {
+        toast.error('Please enter a valid 16-digit card number');
+        return false;
+      }
 
-    if (!/^\d{3,4}$/.test(paymentDetails.cvv)) {
-      toast.error('Please enter a valid CVV');
-      return false;
+      if (!/^(0[1-9]|1[0-2])\/(\d{2})$/.test(paymentDetails.expiry)) {
+        toast.error('Please enter expiry in MM/YY format');
+        return false;
+      }
+
+      if (!/^\d{3,4}$/.test(paymentDetails.cvv)) {
+        toast.error('Please enter a valid CVV');
+        return false;
+      }
     }
 
     return true;
@@ -223,7 +235,7 @@ export const Booking = () => {
       toast.error(error.message);
       setSubmitting(false);
     } else {
-      toast.success('Payment successful! Your booking is confirmed.');
+      toast.success(`Payment successful via ${paymentMethod.toUpperCase()}! Your booking is confirmed.`);
       setBookingId(`EBOK-${Date.now().toString(36).toUpperCase()}`);
       setShowConfirmation(true);
       setSubmitting(false);

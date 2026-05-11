@@ -18,11 +18,14 @@ import {
 } from '@mui/material';
 import { Search, Star, LocationOn, TrendingUp, LocalOffer, BeachAccess, Explore, ArrowForward } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
+import { LocationAutocompleteSuggestions } from '../../components/LocationAutocompleteSuggestions';
 
 export const Home = () => {
   const navigate = useNavigate();
   const { destinations, featuredHotels, loading } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const apiKey = 'AIzaSyA3YMbsVfIEC9os9dK5r8N8WP8_PXbiZVY';
 
   const handleSearch = () => {
     if (searchQuery) {
@@ -30,6 +33,11 @@ export const Home = () => {
     } else {
       navigate('/search');
     }
+  };
+
+  const handleLocationSelect = (location: string) => {
+    setSearchQuery(location);
+    setShowSuggestions(false);
   };
 
   const formatPrice = (price: number) => {
@@ -105,25 +113,35 @@ export const Home = () => {
             mx: 'auto',
             flexDirection: { xs: 'column', sm: 'row' },
           }}>
-            <TextField
-              fullWidth
-              placeholder="Where do you want to go? (Boracay, Palawan, Cebu...)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search sx={{ color: 'text.secondary' }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                bgcolor: 'white',
-                borderRadius: 2,
-                '& fieldset': { border: 'none' },
-              }}
-            />
+            <Box sx={{ position: 'relative', flex: 1 }}>
+              <TextField
+                fullWidth
+                placeholder="Where do you want to go? (Boracay, Palawan, Cebu...)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  bgcolor: 'white',
+                  borderRadius: 2,
+                  '& fieldset': { border: 'none' },
+                }}
+              />
+              <LocationAutocompleteSuggestions
+                apiKey={apiKey}
+                inputValue={searchQuery}
+                onSelect={handleLocationSelect}
+                isOpen={showSuggestions}
+              />
+            </Box>
             <Button
               variant="contained"
               size="large"
