@@ -24,8 +24,11 @@ import {
   Checkbox,
   Rating,
   Divider,
+  InputAdornment, 
+  IconButton, 
+  Tooltip
 } from '@mui/material';
-import { Star, LocationOn, CheckCircle, Search } from '@mui/icons-material';
+import { Star, LocationOn, CheckCircle, Search, MyLocation } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
 import { LocationAutocompleteSuggestions } from '../../components/LocationAutocompleteSuggestions';
 import { HotelWithRooms } from '../../../lib/supabase';
@@ -35,6 +38,27 @@ import { mockIlocosHotels } from '../../data/mockHotel';
 
 const AVAILABLE_ROOM_TYPES = ['Standard', 'Deluxe', 'Suite', 'Cottage'];
 const AVAILABLE_AMENITIES = ['WiFi', 'Pool', 'Gym', 'Spa', 'Air Conditioning', 'Restaurant', 'Parking'];
+
+// Put this outside the RoomSearch component, near the top!
+const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+// Fallback coordinates for our mock hotels since they don't have lat/lng in the database yet
+const getHotelCoords = (hotel: any) => {
+  if (hotel.latitude && hotel.longitude) return { lat: hotel.latitude, lng: hotel.longitude };
+  if (hotel.city?.includes('Laoag')) return { lat: 18.1960, lng: 120.5927 };
+  if (hotel.city?.includes('Pagudpud')) return { lat: 18.5616, lng: 120.7850 };
+  if (hotel.city?.includes('Currimao')) return { lat: 18.0210, lng: 120.4850 };
+  return null;
+};
 
 export const RoomSearch = () => {
   const navigate = useNavigate();
@@ -55,6 +79,9 @@ export const RoomSearch = () => {
   const [hotels, setHotels] = useState<HotelWithRooms[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [locationLoading, setLocationLoading] = useState(false); // NEW STATE
+  const [userCoords, setUserCoords] = useState<{lat: number, lng: number} | null>(null);
+
   
   // ... inside RoomSearch component ...
 
@@ -69,16 +96,35 @@ export const RoomSearch = () => {
     
     // 2. FALLBACK 1: If database is empty, check our local mock data
     if (results.length === 0 && filters.search.trim() !== '') {
-      const searchLower = filters.search.toLowerCase();
-      const mockResults = mockIlocosHotels.filter(hotel => 
-        hotel.name.toLowerCase().includes(searchLower) ||
-        hotel.city.toLowerCase().includes(searchLower) ||
-        hotel.province.toLowerCase().includes(searchLower)
-      );
-      
-      if (mockResults.length > 0) {
-        console.log("Found hotels in mock data!");
-        results = mockResults;
+      let mockResults = [...mockIlocosHotels];
+
+      // If the user clicked the GPS button, calculate the 20km radius!
+      if (userCoords && filters.search === "Within 20km of me") {
+        mockResults = mockResults.filter(hotel => {
+          const coords = getHotelCoords(hotel);
+          if (!coords) return false;
+          
+          const distance = calculateDistanceKm(userCoords.lat, userCoords.lng, coords.lat, coords.lng);
+          return distance <= 20.0; // STRICTLY 20 KILOMETERS!
+        });
+        
+        if (mockResults.length > 0) {
+          console.log(`Found ${mockResults.length} hotels within 20km!`);
+          results = mockResults;
+        }
+      } 
+      // Otherwise, do a normal text search
+      else {
+        const searchLower = filters.search.toLowerCase();
+        mockResults = mockResults.filter(hotel => 
+          hotel.name.toLowerCase().includes(searchLower) ||
+          hotel.city.toLowerCase().includes(searchLower) ||
+          hotel.province.toLowerCase().includes(searchLower)
+        );
+        
+        if (mockResults.length > 0) {
+          results = mockResults;
+        }
       }
     }
 
@@ -126,6 +172,33 @@ export const RoomSearch = () => {
   const getLowestPrice = (hotel: HotelWithRooms) => {
     if (!hotel.rooms || hotel.rooms.length === 0) return null;
     return Math.min(...hotel.rooms.map(r => r.price_per_night));
+  };
+  
+const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log("Target Locked:", latitude, longitude);
+        
+        // Save the exact coordinates for the 20km math
+        setUserCoords({ lat: latitude, lng: longitude });
+        
+        // Update the search bar text so the user knows it worked
+        setFilters(prev => ({ ...prev, search: "Within 20km of me" }));
+        setLocationLoading(false);
+      },
+      (error) => {
+        console.error("GPS error:", error);
+        alert("Could not get location. Please allow location permissions in your browser.");
+        setLocationLoading(false);
+      }
+    );
   };
 
   const handleSearch = () => {
@@ -176,7 +249,18 @@ export const RoomSearch = () => {
                 margin="normal"
                 size="small"
                 InputProps={{
-                  endAdornment: <Search sx={{ color: 'text.secondary', cursor: 'pointer' }} onClick={handleSearch} />,
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Tooltip title="Smart Recommend: Hotels Near Me">
+                        <IconButton onClick={handleUseCurrentLocation} disabled={locationLoading}>
+                          {locationLoading ? <CircularProgress size={20} /> : <MyLocation color="primary" />}
+                        </IconButton>
+                      </Tooltip>
+                      <IconButton onClick={handleSearch} sx={{ p: '10px' }}>
+                         <Search sx={{ color: 'text.secondary' }} />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
                 }}
               />
               <LocationAutocompleteSuggestions

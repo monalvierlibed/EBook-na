@@ -142,16 +142,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { error: new Error('You must be logged in to make a booking') };
     }
 
-    // --- NEW MOCK INTERCEPTOR ---
-    // If the room belongs to our mock Ilocos hotels, pretend the booking succeeded!
-    if (booking.room_id.startsWith('mock-')) {
-      console.log("Mock booking processed successfully!");
-      // Fake a 1-second loading delay so the button animation looks real
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return { error: null }; 
-    }
-    // ----------------------------
-
     const { error } = await supabase
       .from('bookings')
       .insert({
