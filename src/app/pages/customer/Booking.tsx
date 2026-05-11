@@ -21,6 +21,10 @@ import {
   MenuItem,
   CircularProgress,
   Divider,
+  // Add these 3 new imports:
+  RadioGroup,
+  FormControlLabel,
+  Radio
 } from '@mui/material';
 import { CheckCircle, CalendarMonth, Person } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
@@ -452,59 +456,86 @@ export const Booking = () => {
                 </Box>
               </Box>
 
-              <Paper sx={{ p: 2, mb: 3, borderRadius: 2, bgcolor: '#F8FAFC' }}>
-                <Typography variant="body2" fontWeight={600} gutterBottom>
-                  Payment Details (Mock)
+              {/* --- NEW DEMO PAYMENT SECTION --- */}
+              <Box sx={{ p: 3, mb: 3, border: '1px solid #E2E8F0', borderRadius: 2, bgcolor: '#FAFAF9' }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>
+                  Payment Method (Demo)
                 </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                  Enter test card information to simulate payment.
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  No real money will be charged. This is a simulated transaction.
                 </Typography>
 
-                <TextField
-                  fullWidth
-                  label="Cardholder Name"
-                  name="cardName"
-                  value={paymentDetails.cardName}
-                  onChange={(e) => setPaymentDetails({ ...paymentDetails, cardName: e.target.value })}
-                  disabled={submitting}
-                  sx={{ mb: 2 }}
-                />
-                <TextField
-                  fullWidth
-                  label="Card Number"
-                  name="cardNumber"
-                  value={paymentDetails.cardNumber}
-                  onChange={(e) => setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })}
-                  disabled={submitting}
-                  placeholder="1234 5678 9012 3456"
-                  sx={{ mb: 2 }}
-                />
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                  <Grid item xs={6}>
-                    <TextField
-                      fullWidth
-                      label="Expiry (MM/YY)"
-                      name="expiry"
-                      value={paymentDetails.expiry}
-                      onChange={(e) => setPaymentDetails({ ...paymentDetails, expiry: e.target.value })}
-                      disabled={submitting}
-                    />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <TextField
-                      fullWidth
-                      label="CVV"
-                      name="cvv"
-                      value={paymentDetails.cvv}
-                      onChange={(e) => setPaymentDetails({ ...paymentDetails, cvv: e.target.value })}
-                      disabled={submitting}
-                    />
-                  </Grid>
-                </Grid>
-                <Typography variant="caption" color="text.secondary">
-                  This is a mock payment flow. No real charges will occur.
-                </Typography>
-              </Paper>
+                <RadioGroup
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  {/* GCash Option */}
+                  <FormControlLabel 
+                    value="gcash" 
+                    control={<Radio color="primary" />} 
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography fontWeight={500}>GCash</Typography>
+                        <Typography variant="caption" sx={{ bgcolor: '#007DFE', color: 'white', px: 1, py: 0.5, borderRadius: 1 }}>
+                          Recommended
+                        </Typography>
+                      </Box>
+                    } 
+                  />
+                  {paymentMethod === 'gcash' && (
+                    <Box sx={{ ml: 4, mt: 1, mb: 2 }}>
+                      <TextField 
+                        fullWidth 
+                        size="small" 
+                        label="GCash Mobile Number" 
+                        placeholder="09XX XXX XXXX" 
+                        disabled={submitting}
+                      />
+                    </Box>
+                  )}
+
+                  {/* Credit Card Option */}
+                  <FormControlLabel 
+                    value="card" 
+                    control={<Radio color="primary" />} 
+                    label={<Typography fontWeight={500}>Credit / Debit Card</Typography>} 
+                  />
+                  {paymentMethod === 'card' && (
+                    <Box sx={{ ml: 4, mt: 1, mb: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <TextField 
+                        fullWidth 
+                        size="small" 
+                        label="Card Number" 
+                        name="cardNumber"
+                        value={paymentDetails.cardNumber}
+                        onChange={(e) => setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })}
+                        placeholder="1234 5678 9012 3456" 
+                        disabled={submitting}
+                      />
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                        <TextField 
+                          fullWidth 
+                          size="small" 
+                          label="Expiry (MM/YY)" 
+                          name="expiry"
+                          value={paymentDetails.expiry}
+                          onChange={(e) => setPaymentDetails({ ...paymentDetails, expiry: e.target.value })}
+                          disabled={submitting}
+                        />
+                        <TextField 
+                          fullWidth 
+                          size="small" 
+                          label="CVV" 
+                          name="cvv"
+                          value={paymentDetails.cvv}
+                          onChange={(e) => setPaymentDetails({ ...paymentDetails, cvv: e.target.value })}
+                          disabled={submitting}
+                        />
+                      </Box>
+                    </Box>
+                  )}
+                </RadioGroup>
+              </Box>
 
               <Button
                 fullWidth
@@ -513,9 +544,11 @@ export const Booking = () => {
                 type="submit"
                 disabled={submitting}
                 startIcon={submitting ? <CircularProgress size={20} color="inherit" /> : null}
+                sx={{ py: 1.5, fontSize: '1.1rem' }}
               >
-                {submitting ? (paymentProcessing ? 'Processing Payment...' : 'Processing...') : 'Confirm Booking'}
+                {submitting ? 'Processing Payment...' : 'Pay & Confirm Booking'}
               </Button>
+              {/* ---------------------------------- */}
             </Paper>
           </Grid>
         </Grid>
