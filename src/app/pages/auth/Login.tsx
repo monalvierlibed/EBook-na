@@ -108,22 +108,6 @@ export const Login = () => {
         >
           Continue with Google
         </Button>
-        <Button
-          fullWidth
-          variant="outlined"
-          size="large"
-          startIcon={socialLoading === 'facebook' ? <CircularProgress size={20} /> : <Facebook />}
-          onClick={handleFacebookSignIn}
-          disabled={socialLoading !== null}
-          sx={{
-            py: 1.5,
-            borderColor: '#E2E8F0',
-            color: '#1877F2',
-            '&:hover': { borderColor: '#1877F2', bgcolor: 'rgba(24, 119, 242, 0.05)' },
-          }}
-        >
-          Continue with Facebook
-        </Button>
       </Box>
 
       <Divider sx={{ my: 3 }}>
