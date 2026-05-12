@@ -154,7 +154,7 @@ export const ReservationManagement = () => {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {stats.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Grid xs={12} sm={6} md={3} key={index}>
             <Card sx={{ borderLeft: `4px solid ${stat.color}` }}>
               <CardContent>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
@@ -259,7 +259,7 @@ export const ReservationManagement = () => {
             </DialogTitle>
             <DialogContent>
               <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <Paper sx={{ p: 2, bgcolor: '#F8FAFC' }}>
                     <Typography variant="caption" color="text.secondary">
                       Booking ID
@@ -270,7 +270,7 @@ export const ReservationManagement = () => {
                   </Paper>
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Room Information
                   </Typography>
@@ -282,7 +282,7 @@ export const ReservationManagement = () => {
                   </Typography>
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Check-in
                   </Typography>
@@ -291,7 +291,7 @@ export const ReservationManagement = () => {
                   </Typography>
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Check-out
                   </Typography>
@@ -300,21 +300,21 @@ export const ReservationManagement = () => {
                   </Typography>
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Guests
                   </Typography>
                   <Typography variant="body1">{selectedBooking.guests || 1}</Typography>
                 </Grid>
 
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     Status
                   </Typography>
                   {getStatusChip(selectedBooking.status)}
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <Paper sx={{ p: 2, bgcolor: '#EFF6FF' }}>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                       Total Amount
@@ -325,7 +325,7 @@ export const ReservationManagement = () => {
                   </Paper>
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <Typography variant="caption" color="text.secondary">
                     Booked on: {selectedBooking.created_at ? new Date(selectedBooking.created_at).toLocaleString() : 'N/A'}
                   </Typography>

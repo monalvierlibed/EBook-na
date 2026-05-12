@@ -38,7 +38,7 @@ const menuItems = [
 export const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, setUser } = useApp();
+  const { user, setUser } = useAuth();
   const { profile, loading } = useAuth();
 
   // Show loading spinner while checking auth
@@ -133,3 +133,4 @@ export const AdminLayout = () => {
     </Box>
   );
 };
+

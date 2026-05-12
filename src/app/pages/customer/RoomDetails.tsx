@@ -148,7 +148,7 @@ export const RoomDetails = () => {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Hero Image Gallery */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={8}>
+        <Grid xs={12} md={8}>
           <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
             <Box
               component="img"
@@ -158,10 +158,10 @@ export const RoomDetails = () => {
             />
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid xs={12} md={4}>
           <Grid container spacing={2}>
             {hotel.images?.slice(1, 3).map((img, idx) => (
-              <Grid item xs={6} md={12} key={idx}>
+              <Grid xs={6} md={12} key={idx}>
                 <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
                   <Box
                     component="img"
@@ -177,7 +177,7 @@ export const RoomDetails = () => {
       </Grid>
 
       <Grid container spacing={4}>
-        <Grid item xs={12} md={8}>
+        <Grid xs={12} md={8}>
           {/* Hotel Info */}
           <Box sx={{ mb: 4 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2, flexWrap: 'wrap', gap: 2 }}>
@@ -218,7 +218,7 @@ export const RoomDetails = () => {
             </Typography>
             <Grid container spacing={2}>
               {hotel.amenities?.map((amenity, index) => (
-                <Grid item xs={6} sm={4} key={index}>
+                <Grid xs={6} sm={4} key={index}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Box sx={{ color: 'primary.main' }}>
                       {amenityIcons[amenity] || <CheckCircle />}
@@ -237,7 +237,7 @@ export const RoomDetails = () => {
             </Typography>
             <Grid container spacing={3}>
               {hotel.rooms?.map((room) => (
-                <Grid item xs={12} key={room.id}>
+                <Grid xs={12} key={room.id}>
                   <Card sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, borderRadius: 3 }}>
                     <CardMedia
                       component="img"
@@ -307,17 +307,17 @@ export const RoomDetails = () => {
               Property Policies
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              <Grid xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">
                   <strong>Check-in:</strong> 2:00 PM - 11:00 PM
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid xs={12} sm={6}>
                 <Typography variant="body2" color="text.secondary">
                   <strong>Check-out:</strong> Until 12:00 PM
                 </Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid xs={12}>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="body2" color="text.secondary">
                   Free cancellation up to 24 hours before check-in. Early check-in and late check-out available upon request.
@@ -328,7 +328,7 @@ export const RoomDetails = () => {
         </Grid>
 
         {/* Sidebar */}
-        <Grid item xs={12} md={4}>
+        <Grid xs={12} md={4}>
           <Paper sx={{ p: 3, position: 'sticky', top: 80 }}>
             {lowestPrice && (
               <Box sx={{ mb: 3 }}>
@@ -404,3 +404,4 @@ export const RoomDetails = () => {
     </Container>
   );
 };
+
