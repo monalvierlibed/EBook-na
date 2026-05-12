@@ -226,7 +226,7 @@ export const AdminDashboard = () => {
 
       {/* Metrics Row */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item component="div" xs={12} sm={6} md={3}>
+        <Grid component="div" xs={12} sm={6} md={3}>
           <StatCard 
             title="Total Revenue" 
             value={formatPrice(metrics.totalRevenue)} 
@@ -234,7 +234,7 @@ export const AdminDashboard = () => {
             color="success" 
           />
         </Grid>
-        <Grid item component="div" xs={12} sm={6} md={3}>
+        <Grid component="div" xs={12} sm={6} md={3}>
           <StatCard 
             title="Total Bookings" 
             value={metrics.totalBookings} 
@@ -242,7 +242,7 @@ export const AdminDashboard = () => {
             color="primary" 
           />
         </Grid>
-        <Grid item component="div" xs={12} sm={6} md={3}>
+        <Grid component="div" xs={12} sm={6} md={3}>
           <StatCard 
             title="Active Rooms" 
             value={metrics.totalRooms} 
@@ -250,7 +250,7 @@ export const AdminDashboard = () => {
             color="warning" 
           />
         </Grid>
-        <Grid item component="div" xs={12} sm={6} md={3}>
+        <Grid component="div" xs={12} sm={6} md={3}>
           <StatCard 
             title="Total Customers" 
             value={metrics.totalCustomers} 
@@ -337,3 +337,4 @@ export const AdminDashboard = () => {
     </Container>
   );
 };
+

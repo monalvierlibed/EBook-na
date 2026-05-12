@@ -99,7 +99,7 @@ export const RoomSearch = () => {
       let mockResults = [...mockIlocosHotels];
 
       // If the user clicked the GPS button, calculate the 20km radius!
-      if (userCoords && filters.search === "Within 20km of me") {
+      if (userCoords && filters.search === "Near my location") {
         mockResults = mockResults.filter(hotel => {
           const coords = getHotelCoords(hotel);
           if (!coords) return false;
@@ -190,7 +190,7 @@ const handleUseCurrentLocation = () => {
         setUserCoords({ lat: latitude, lng: longitude });
         
         // Update the search bar text so the user knows it worked
-        setFilters(prev => ({ ...prev, search: "Within 20km of me" }));
+        setFilters(prev => ({ ...prev, search: "Near my location" }));
         setLocationLoading(false);
       },
       (error) => {
@@ -231,7 +231,7 @@ const handleUseCurrentLocation = () => {
       </Typography>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={3}>
+        <Grid xs={12} md={3}>
           <Paper sx={{ p: 3, position: 'sticky', top: 80, maxHeight: '85vh', overflowY: 'auto' }}>
             <Typography variant="h6" fontWeight={600} gutterBottom>
               Filters
@@ -399,7 +399,7 @@ const handleUseCurrentLocation = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={9}>
+        <Grid xs={12} md={9}>
           <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="body1">
               <strong>{hotels.length}</strong> hotels found
@@ -417,7 +417,7 @@ const handleUseCurrentLocation = () => {
                 const hasAvailableRooms = hotel.rooms?.some(r => r.available) ?? false;
                 
                 return (
-                  <Grid item xs={12} sm={6} lg={4} key={hotel.id}>
+                  <Grid xs={12} sm={6} lg={4} key={hotel.id}>
                     <Card 
                       sx={{ 
                         height: '100%', 

@@ -242,6 +242,13 @@ export const Booking = () => {
       toast.error(error.message);
       setSubmitting(false);
     } else {
+      await supabase.from('notifications').insert({
+  user_id: user.id, // The user making the booking
+  title: 'Booking Successful!',
+  message: `Your reservation has been confirmed. Enjoy your stay!`,
+  type: 'booking_confirmed',
+  read: false
+});
       toast.success(`Payment successful via ${paymentMethod.toUpperCase()}! Your booking is confirmed.`);
       setBookingId(`EBOK-${Date.now().toString(36).toUpperCase()}`);
       setShowConfirmation(true);
@@ -635,3 +642,4 @@ export const Booking = () => {
     </Container>
   );
 };
+

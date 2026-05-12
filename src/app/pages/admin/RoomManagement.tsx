@@ -200,7 +200,7 @@ export const RoomManagement = () => {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Room Name"
@@ -209,7 +209,7 @@ export const RoomManagement = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Hotel Name"
@@ -218,7 +218,7 @@ export const RoomManagement = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid xs={12} sm={6}>
               <FormControl fullWidth>
                 <InputLabel>Room Type</InputLabel>
                 <Select
@@ -235,7 +235,7 @@ export const RoomManagement = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Price per Night"
@@ -245,7 +245,7 @@ export const RoomManagement = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 fullWidth
                 label="Location"
@@ -254,7 +254,7 @@ export const RoomManagement = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <TextField
                 fullWidth
                 label="Description"
@@ -265,7 +265,7 @@ export const RoomManagement = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Availability Status</InputLabel>
                 <Select
@@ -290,3 +290,4 @@ export const RoomManagement = () => {
     </Box>
   );
 };
+

@@ -15,6 +15,9 @@ import {
   InputAdornment,
   CircularProgress,
   IconButton,
+  // Add these two:
+  Rating,
+  Skeleton
 } from '@mui/material';
 import { Search, Star, LocationOn, TrendingUp, LocalOffer, BeachAccess, Explore, ArrowForward } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
@@ -169,7 +172,7 @@ export const Home = () => {
             { icon: <LocalOffer />, label: 'Best Deals', count: 'Save up to 40%' },
             { icon: <Star />, label: 'Verified Reviews', count: '4.8+ Rating' },
           ].map((item, index) => (
-            <Grid item xs={12} md={4} key={index}>
+            <Grid xs={12} md={4} key={index}>
               <Card sx={{ textAlign: 'center', p: 3, height: '100%', bgcolor: 'white' }}>
                 <Box sx={{ color: 'primary.main', mb: 1 }}>{item.icon}</Box>
                 <Typography variant="h6" fontWeight={600}>
@@ -204,7 +207,7 @@ export const Home = () => {
 
         <Grid container spacing={2} sx={{ mb: 8 }}>
           {destinations.slice(0, 4).map((destination) => (
-            <Grid item xs={6} md={3} key={destination.id}>
+            <Grid xs={6} md={3} key={destination.id}>
               <Card 
                 sx={{ 
                   position: 'relative', 
@@ -264,91 +267,111 @@ export const Home = () => {
         </Box>
 
         <Grid container spacing={3} sx={{ mb: 8 }}>
-          {featuredHotels.slice(0, 6).map((hotel) => {
-            const lowestPrice = getLowestPrice(hotel);
-            return (
-              <Grid item xs={12} sm={6} md={4} key={hotel.id}>
-                <Card 
-                  sx={{ 
-                    height: '100%', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    borderRadius: 3, 
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    transition: 'box-shadow 0.2s',
-                    '&:hover': { boxShadow: '0 8px 30px rgba(0,0,0,0.12)' },
-                  }}
-                  onClick={() => navigate(`/hotel/${hotel.id}`)}
-                >
-                  <Box sx={{ position: 'relative' }}>
-                    <CardMedia
-                      component="img"
-                      height="200"
-                      image={hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'}
-                      alt={hotel.name}
-                    />
-                    {hotel.featured && (
-                      <Chip
-                        label="Featured"
-                        size="small"
-                        sx={{
-                          position: 'absolute',
-                          top: 12,
-                          left: 12,
-                          bgcolor: '#FCD116',
-                          color: '#0F172A',
-                          fontWeight: 600,
-                        }}
-                      />
-                    )}
-                  </Box>
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-                      <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.3 }}>
-                        {hotel.name}
-                      </Typography>
-                      <Chip
-                        icon={<Star sx={{ fontSize: 14, color: '#FCD116 !important' }} />}
-                        label={hotel.rating.toFixed(1)}
-                        size="small"
-                        sx={{ bgcolor: '#0066B3', color: 'white' }}
-                      />
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
-                      <LocationOn sx={{ fontSize: 16, mr: 0.5 }} />
-                      {hotel.city}, {hotel.province}
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                      {hotel.amenities?.slice(0, 3).map((amenity, idx) => (
-                        <Chip key={idx} label={amenity} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
-                      ))}
-                    </Box>
-                    {lowestPrice && (
-                      <Typography variant="h5" color="primary.main" fontWeight={700}>
-                        {formatPrice(lowestPrice)}
-                        <Typography component="span" variant="body2" color="text.secondary" fontWeight={400}>
-                          /night
-                        </Typography>
-                      </Typography>
-                    )}
-                  </CardContent>
-                  <CardActions sx={{ p: 2, pt: 0 }}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/hotel/${hotel.id}`);
-                      }}
-                    >
-                      View Details
-                    </Button>
-                  </CardActions>
-                </Card>
+          {loading ? (
+            // Show sleek loading skeletons while fetching from Supabase
+            Array.from(new Array(6)).map((_, index) => (
+              <Grid xs={12} sm={6} md={4} key={index}>
+                <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 3 }} />
+                <Skeleton variant="text" height={40} sx={{ mt: 1 }} />
+                <Skeleton variant="text" width="60%" />
               </Grid>
-            );
-          })}
+            ))
+          ) : featuredHotels.length === 0 ? (
+            <Grid xs={12}>
+              <Typography textAlign="center" color="text.secondary">No featured hotels available at the moment.</Typography>
+            </Grid>
+          ) : (
+            // Render the real hotels with sleek layout
+            featuredHotels.slice(0, 6).map((hotel) => {
+              const lowestPrice = getLowestPrice(hotel);
+              return (
+                <Grid xs={12} sm={6} md={4} key={hotel.id}>
+                  <Card 
+                    sx={{ 
+                      height: '100%', 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      borderRadius: 3, 
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease-in-out',
+                      border: '1px solid transparent',
+                      // Modern hover animation
+                      '&:hover': { 
+                        transform: 'translateY(-8px)',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                        borderColor: 'primary.main'
+                      },
+                    }}
+                    onClick={() => navigate(`/hotel/${hotel.id}`)}
+                  >
+                    <Box sx={{ position: 'relative' }}>
+                      <CardMedia
+                        component="img"
+                        height="200"
+                        image={hotel.images?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800'}
+                        alt={hotel.name}
+                        sx={{ objectFit: 'cover' }}
+                      />
+                      {hotel.featured && (
+                        <Chip
+                          label="Featured"
+                          size="small"
+                          sx={{
+                            position: 'absolute',
+                            top: 12,
+                            left: 12,
+                            bgcolor: '#FCD116',
+                            color: '#0F172A',
+                            fontWeight: 600,
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.2)'
+                          }}
+                        />
+                      )}
+                    </Box>
+                    <CardContent sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2, mr: 1 }}>
+                          {hotel.name}
+                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: '#FEF3C7', px: 1, borderRadius: 1 }}>
+                          <Typography variant="subtitle2" fontWeight="bold" sx={{ color: '#D97706' }}>
+                            {hotel.rating.toFixed(1)}
+                          </Typography>
+                          <Rating value={1} max={1} readOnly size="small" sx={{ color: '#D97706', ml: 0.5 }} />
+                        </Box>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+                        <LocationOn sx={{ fontSize: 16, mr: 0.5 }} />
+                        {hotel.city}, {hotel.province}
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+                        {hotel.amenities?.slice(0, 3).map((amenity, idx) => (
+                          <Chip key={idx} label={amenity} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+                        ))}
+                      </Box>
+
+                      {/* Pricing Section stays at the bottom */}
+                      <Box sx={{ mt: 'auto', pt: 2, borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Starting from
+                          </Typography>
+                          <Typography variant="h6" fontWeight={800} color="primary.main">
+                            {lowestPrice ? formatPrice(lowestPrice) : 'Contact Us'}
+                          </Typography>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          per night
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })
+          )}
         </Grid>
 
         {/* Beach Banner */}
@@ -395,3 +418,4 @@ export const Home = () => {
     </Box>
   );
 };
+
