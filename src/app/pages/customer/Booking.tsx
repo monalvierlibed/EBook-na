@@ -32,6 +32,9 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase, RoomWithHotel } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
+// @ts-ignore - Material-UI Grid v7 has typing issues with item prop
+const GridItem = Grid as any;
+
 export const Booking = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
@@ -261,14 +264,14 @@ export const Booking = () => {
 
       <form onSubmit={handleSubmit}>
         <Grid container spacing={4}>
-          <Grid item xs={12} md={8}>
+          <GridItem item xs={12} md={8}>
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" fontWeight={600} gutterBottom>
                 Guest Information
               </Typography>
 
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <GridItem item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="First Name"
@@ -278,8 +281,8 @@ export const Booking = () => {
                     required
                     disabled={submitting}
                   />
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                </GridItem>
+                <GridItem item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Last Name"
@@ -289,8 +292,8 @@ export const Booking = () => {
                     required
                     disabled={submitting}
                   />
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                </GridItem>
+                <GridItem item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Email"
@@ -301,8 +304,8 @@ export const Booking = () => {
                     required
                     disabled={submitting}
                   />
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                </GridItem>
+                <GridItem item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Phone Number"
@@ -313,7 +316,7 @@ export const Booking = () => {
                     disabled={submitting}
                     placeholder="+63"
                   />
-                </Grid>
+                </GridItem>
               </Grid>
             </Paper>
 
@@ -323,7 +326,7 @@ export const Booking = () => {
               </Typography>
 
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <GridItem item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Check-in Date"
@@ -336,8 +339,8 @@ export const Booking = () => {
                     required
                     disabled={submitting}
                   />
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                </GridItem>
+                <GridItem item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     label="Check-out Date"
@@ -350,8 +353,8 @@ export const Booking = () => {
                     required
                     disabled={submitting}
                   />
-                </Grid>
-                <Grid item xs={12}>
+                </GridItem>
+                <GridItem item xs={12}>
                   <FormControl fullWidth disabled={submitting}>
                     <InputLabel>Number of Guests</InputLabel>
                     <Select
@@ -367,8 +370,8 @@ export const Booking = () => {
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
-                <Grid item xs={12}>
+                </GridItem>
+                <GridItem item xs={12}>
                   <TextField
                     fullWidth
                     label="Special Requests (Optional)"
@@ -380,12 +383,12 @@ export const Booking = () => {
                     disabled={submitting}
                     placeholder="E.g., early check-in, extra pillows, dietary requirements..."
                   />
-                </Grid>
+                </GridItem>
               </Grid>
             </Paper>
-          </Grid>
+          </GridItem>
 
-          <Grid item xs={12} md={4}>
+          <GridItem item xs={12} md={4}>
             <Paper sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" fontWeight={600} gutterBottom>
                 Your Selection
@@ -550,7 +553,7 @@ export const Booking = () => {
               </Button>
               {/* ---------------------------------- */}
             </Paper>
-          </Grid>
+          </GridItem>
         </Grid>
       </form>
 
@@ -584,34 +587,34 @@ export const Booking = () => {
               
               {/* Fix: Changed to integer spacing (2) as some strict MUI versions reject float grid spacing */}
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <GridItem item xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary" display="block">Hotel</Typography>
                   <Typography variant="body2" fontWeight={600}>{room?.hotel?.name}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                </GridItem>
+                <GridItem item xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary" display="block">Room</Typography>
                   <Typography variant="body2" fontWeight={600}>{room?.name}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                </GridItem>
+                <GridItem item xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary" display="block">Check-in</Typography>
                   <Typography variant="body2" fontWeight={600}>{formatDate(formData.checkIn)}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                </GridItem>
+                <GridItem item xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary" display="block">Check-out</Typography>
                   <Typography variant="body2" fontWeight={600}>{formatDate(formData.checkOut)}</Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                </GridItem>
+                <GridItem item xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary" display="block">Guests</Typography>
                   <Typography variant="body2" fontWeight={600}>
                     {formData.guests} {formData.guests === 1 ? 'Guest' : 'Guests'} ({nights} {nights === 1 ? 'Night' : 'Nights'})
                   </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
+                </GridItem>
+                <GridItem item xs={12} sm={6}>
                   <Typography variant="caption" color="text.secondary" display="block">Total Amount Paid</Typography>
                   <Typography variant="body1" fontWeight={700} color="success.main">
                     {formatPrice(total)}
                   </Typography>
-                </Grid>
+                </GridItem>
               </Grid>
             </Box>
           </Paper>

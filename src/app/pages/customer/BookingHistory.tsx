@@ -4,7 +4,6 @@ import {
   Typography,
   Box,
   Card,
-  CardContent,
   Grid,
   Chip,
   Button,
@@ -15,15 +14,17 @@ import {
   CircularProgress,
   GlobalStyles
 } from '@mui/material';
-import { ConfirmationNumber, Print, Hotel, CalendarMonth, Payment } from '@mui/icons-material';
+import { ConfirmationNumber, Print, Hotel, CalendarMonth, Payment, Cancel } from '@mui/icons-material';
 import { useApp } from '../../context/AppContext';
-import { BookingWithDetails } from '../../../lib/supabase';
+import { BookingWithDetails, supabase } from '../../../lib/supabase'; // <-- Added supabase import
 
 export const BookingHistory = () => {
   const { bookings, fetchBookings, loading } = useApp();
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
+  
+  // NEW: Track which booking is currently being cancelled
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  // Fetch bookings when the page loads
   useEffect(() => {
     fetchBookings();
   }, []);
@@ -38,6 +39,31 @@ export const BookingHistory = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  // NEW: The Cancel Handler
+  const handleCancelBooking = async (bookingId: string) => {
+    const isConfirmed = window.confirm("Are you sure you want to cancel this booking? This action cannot be undone.");
+    if (!isConfirmed) return;
+
+    setCancellingId(bookingId); // Show spinner for this specific button
+    try {
+      // Update the database to set status to 'cancelled'
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'cancelled' })
+        .eq('id', bookingId);
+
+      if (error) throw error;
+
+      alert('Booking cancelled successfully!');
+      fetchBookings(); // Refresh the list from AppContext so the UI updates
+    } catch (error: any) {
+      console.error('Error cancelling booking:', error);
+      alert('Failed to cancel booking: ' + error.message);
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -62,9 +88,6 @@ export const BookingHistory = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
-      {/* This GlobalStyle is the magic trick! 
-        When the user hits "Print", it hides the whole website EXCEPT the voucher.
-      */}
       <GlobalStyles styles={{
         '@media print': {
           'body *': { visibility: 'hidden' },
@@ -84,7 +107,7 @@ export const BookingHistory = () => {
         My Bookings
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        View and download your confirmed hotel reservations.
+        View, download, or cancel your hotel reservations.
       </Typography>
 
       {bookings.length === 0 ? (
@@ -96,7 +119,7 @@ export const BookingHistory = () => {
           {bookings.map((booking) => (
             <Grid item xs={12} key={booking.id}>
               <Card sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'center', p: 2 }}>
-                <Box sx={{ flex: 1 }}>
+                <Box sx={{ flex: 1, width: '100%' }}>
                   <Typography variant="h6" fontWeight={600}>
                     {booking.room?.hotel?.name || 'Hotel Name Unavailable'}
                   </Typography>
@@ -108,12 +131,13 @@ export const BookingHistory = () => {
                     <Chip 
                       size="small" 
                       label={booking.status.toUpperCase()} 
-                      color={booking.status === 'confirmed' ? 'success' : 'warning'} 
+                      color={booking.status === 'confirmed' ? 'success' : booking.status === 'cancelled' ? 'error' : 'warning'} 
                     />
                   </Box>
                 </Box>
                 
-                <Box sx={{ mt: { xs: 2, sm: 0 }, ml: { sm: 2 }, minWidth: '140px' }}>
+                {/* MODIFIED: Wrapped buttons in a column layout */}
+                <Box sx={{ mt: { xs: 2, sm: 0 }, ml: { sm: 2 }, minWidth: '160px', display: 'flex', flexDirection: 'column', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
                   <Button 
                     variant="contained" 
                     fullWidth 
@@ -123,6 +147,20 @@ export const BookingHistory = () => {
                   >
                     View Voucher
                   </Button>
+
+                  {/* NEW: Cancel Button */}
+                  {booking.status !== 'cancelled' && (
+                    <Button 
+                      variant="outlined" 
+                      color="error"
+                      fullWidth 
+                      startIcon={cancellingId === booking.id ? <CircularProgress size={16} color="error" /> : <Cancel />}
+                      onClick={() => handleCancelBooking(booking.id)}
+                      disabled={cancellingId === booking.id || booking.status === 'cancelled'}
+                    >
+                      {cancellingId === booking.id ? 'Cancelling...' : 'Cancel Booking'}
+                    </Button>
+                  )}
                 </Box>
               </Card>
             </Grid>
@@ -140,7 +178,6 @@ export const BookingHistory = () => {
       >
         {selectedBooking && (
           <>
-            {/* The actual printable area */}
             <DialogContent id="printable-voucher" sx={{ p: 0, overflow: 'hidden' }}>
               {/* Hotel Header */}
               <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 4, textAlign: 'center' }}>
@@ -213,7 +250,6 @@ export const BookingHistory = () => {
 
                 </Grid>
 
-                {/* Mock QR Code for Professional Flair */}
                 <Box sx={{ mt: 4, textAlign: 'center', p: 2, bgcolor: '#F8FAFC', borderRadius: 2, border: '1px dashed #CBD5E1' }}>
                   <Box sx={{ width: 100, height: 100, bgcolor: 'black', mx: 'auto', mb: 1, 
                     backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #ccc 10px, #ccc 20px)' }} 
@@ -225,7 +261,6 @@ export const BookingHistory = () => {
               </Box>
             </DialogContent>
 
-            {/* Action Buttons (Hidden when printing) */}
             <DialogActions className="no-print" sx={{ p: 3, bgcolor: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
               <Button onClick={handleCloseVoucher} color="inherit">
                 Close
